@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Threading.Tasks;
 
 public class ParticleFluid : MonoBehaviour
 {
@@ -19,16 +20,19 @@ public class ParticleFluid : MonoBehaviour
 
     public Vector2[] positions { get; private set; }
     public float[] fieldQuantities { get; private set; }
+    public float[] densities { get; private set; }
     public int particleCount { get; private set; }
     public float functionVolume { get; private set; }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    void Awake()
     {
         Instance = this;
         CalculatePositions();
 
+        densities = new float[particleCount];
         fieldQuantities = new float[particleCount];
+        UpdateDensities();
         SetQuantities();
 
         functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 8) / 4f;
@@ -37,7 +41,15 @@ public class ParticleFluid : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        UpdateDensities();
+    }
+
+    void UpdateDensities()
+    {
+        Parallel.For(0, particleCount, i =>
+        {
+            densities[i] = CalculateDensity(positions[i]);
+        });
     }
 
     void CalculatePositions()
@@ -93,6 +105,16 @@ public class ParticleFluid : MonoBehaviour
 
         float sqrDistance = radius * radius - distance * distance;
         return sqrDistance * sqrDistance * sqrDistance / functionVolume; // (r^2 - d^2)^3 for a smooth top
+    }
+
+    // Derivative of kernel function
+    public float SmoothingKernelDerivative(float radius, float distance)
+    {
+        if (distance >= radius)
+            return 0f;
+
+        float sqrDistance = radius * radius - distance * distance;
+        return -6f * distance * sqrDistance * sqrDistance / functionVolume; // Derivative of (r^2 - d^2)^3 / volume
     }
 
     public float CalculateDensity(Vector2 position)

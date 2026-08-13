@@ -531,7 +531,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1223060304}
   - component: {fileID: 1223060305}
-  - component: {fileID: 1223060306}
   - component: {fileID: 1223060307}
   m_Layer: 0
   m_Name: Manager
@@ -572,21 +571,9 @@ MonoBehaviour:
   mass: 1
   smoothingRadius: 1
   isRandom: 1
-  particleCountRandom: 334
+  particleCountRandom: 200
   boundSize: {x: 6, y: 6}
   circle: {fileID: 0}
---- !u!114 &1223060306
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1223060303}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a815aac084f8e14d9d7c6947c7116e4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
 --- !u!114 &1223060307
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -11,9 +11,11 @@ public class Gradient : MonoBehaviour
     public Vector2[] gradients { get; private set; }
     private bool hasCalculated = false;
     private int particleCount;
+    private ParticleFluid simulator;
 
     void Start()
     {
+        simulator = ParticleFluid.Instance;
         CalculatePositions();
     }
 
@@ -34,29 +36,26 @@ public class Gradient : MonoBehaviour
     {
         for (int i = 0; i < particleCount; i++)
         {
-            Vector2 pos = positions[i];
-            
-            float d = 0.001f;
-            float deltaX = FieldQuantityAt(pos + d * Vector2.right) - FieldQuantityAt(pos);
-            float deltaY = FieldQuantityAt(pos + d * Vector2.up) - FieldQuantityAt(pos);
-
-            Vector2 gradient = new Vector2(deltaX, deltaY) / d;
-            gradients[i] = gradient;
+            gradients[i] = GradientAt(positions[i]);
         }
     }
 
-    float FieldQuantityAt(Vector2 position)
+    Vector2 GradientAt(Vector2 position)
     {
-        float quantity = 0f;
-        for (int i = 0; i < ParticleFluid.Instance.particleCount; i++)
+        Vector2 gradient = Vector2.zero;
+        for (int i = 0; i < simulator.particleCount; i++)
         {
-            float distance = Vector2.Distance(position, ParticleFluid.Instance.positions[i]);
-            quantity += ParticleFluid.Instance.SmoothingKernel(ParticleFluid.Instance.smoothingRadius, distance)
-            * ParticleFluid.Instance.mass
-            * ParticleFluid.Instance.fieldQuantities[i]
-            / ParticleFluid.Instance.CalculateDensity(ParticleFluid.Instance.positions[i]);
+            Vector2 particlePos = simulator.positions[i];
+            Vector2 direction = (particlePos - position).normalized;
+
+            float distance = Vector2.Distance(position, particlePos);
+            float kernelDerivative = simulator.SmoothingKernelDerivative(simulator.smoothingRadius, distance);
+
+            float density = simulator.densities[i];
+
+            gradient -= simulator.mass * simulator.fieldQuantities[i] * kernelDerivative * direction / density;
         }
-        return quantity;
+        return gradient;
     }
 
     void CalculatePositions()
