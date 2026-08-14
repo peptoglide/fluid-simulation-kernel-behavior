@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
+using Unity.Android.Gradle.Manifest;
 
 public class ParticleFluid : MonoBehaviour
 {
@@ -15,14 +16,22 @@ public class ParticleFluid : MonoBehaviour
     public bool isRandom;
     public int particleCountRandom;
     public Vector2 boundSize;
+    [Header("Physics")]
+    public float gravity = 9.81f;
+    public float bounceDamping = 0.8f;
+    public Vector2 simulationBounds = new Vector2(10f, 10f);
     [Header("Rendering")]
-    public Mesh circle;
+    public Color particleColor = Color.white;
 
+    public Vector2[] velocities { get; private set; }
     public Vector2[] positions { get; private set; }
+    public Vector2[] previousLocations { get; private set; }
     public float[] fieldQuantities { get; private set; }
     public float[] densities { get; private set; }
     public int particleCount { get; private set; }
     public float functionVolume { get; private set; }
+    private Pressure pressureCalculator;
+    private bool isRunning = false;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
@@ -31,25 +40,52 @@ public class ParticleFluid : MonoBehaviour
         CalculatePositions();
 
         densities = new float[particleCount];
+        velocities = new Vector2[particleCount];
         fieldQuantities = new float[particleCount];
-        UpdateDensities();
-        SetQuantities();
 
-        functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 8) / 4f;
+        functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 4) / 6f;
+
+        pressureCalculator = GetComponent<Pressure>();
+        isRunning = true;
     }
 
-    // Update is called once per frame
+    // Simulation step
     void Update()
     {
-        UpdateDensities();
-    }
-
-    void UpdateDensities()
-    {
+        float deltaTime = Time.deltaTime;
         Parallel.For(0, particleCount, i =>
         {
+            velocities[i] += Vector2.down * gravity * deltaTime;
             densities[i] = CalculateDensity(positions[i]);
         });
+
+        // Pressure
+        Parallel.For(0, particleCount, i =>
+        {
+            Vector2 pressureForce = pressureCalculator.PressureGradientAtParticle(i);
+            velocities[i] += pressureForce / densities[i] * deltaTime;
+        });
+
+        // Updating positions
+        Parallel.For(0, particleCount, i =>
+        {
+            positions[i] += velocities[i] * deltaTime;
+            ResolveCollision(i);
+            previousLocations[i] = positions[i];
+        });
+    }
+
+    void ResolveCollision(int i)
+    {
+        if (positions[i].x < -simulationBounds.x || positions[i].x > simulationBounds.x)
+        {
+            velocities[i].x *= -bounceDamping; // Bounce back with damping
+        }
+
+        if (positions[i].y < -simulationBounds.y || positions[i].y > simulationBounds.y)
+        {
+            velocities[i].y *= -bounceDamping; // Bounce back with damping
+        }
     }
 
     void CalculatePositions()
@@ -86,15 +122,7 @@ public class ParticleFluid : MonoBehaviour
                 positions[i] = new Vector2(x, y);
             }
         }
-    }
-
-    void SetQuantities()
-    {
-        // Use random function for testing
-        for (int i = 0; i < particleCount; i++)
-        {
-            fieldQuantities[i] = Mathf.Sin(positions[i].x) * Mathf.Cos(positions[i].y);
-        }
+        previousLocations = positions;
     }
 
     // Divide by volume to ensure normalized kernel i.e Integral all = 1
@@ -103,8 +131,7 @@ public class ParticleFluid : MonoBehaviour
         if (distance >= radius)
             return 0f;
 
-        float sqrDistance = radius * radius - distance * distance;
-        return sqrDistance * sqrDistance * sqrDistance / functionVolume; // (r^2 - d^2)^3 for a smooth top
+        return (radius - distance) * (radius - distance) / functionVolume; // (r-d)^2 for steeper derivatives near 0
     }
 
     // Derivative of kernel function
@@ -113,8 +140,7 @@ public class ParticleFluid : MonoBehaviour
         if (distance >= radius)
             return 0f;
 
-        float sqrDistance = radius * radius - distance * distance;
-        return -6f * distance * sqrDistance * sqrDistance / functionVolume; // Derivative of (r^2 - d^2)^3 / volume
+        return -2f * (radius - distance) / functionVolume; // Derivative
     }
 
     public float CalculateDensity(Vector2 position)
@@ -130,15 +156,25 @@ public class ParticleFluid : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        if (sidelength >= 75) return; // Avoid drawing too many particles in the editor
+        if (!isRunning)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireCube(Vector2.zero, simulationBounds * 2f);
+            if (sidelength >= 75) return; // Avoid drawing too many particles in the editor
 
-        CalculatePositions();
+            CalculatePositions();
 
-        fieldQuantities = new float[particleCount];
-        SetQuantities();
+            Gizmos.color = particleColor;
+            for (int i = 0; i < particleCount; i++)
+            {
+                Gizmos.DrawSphere(positions[i], 0.05f);
+            }
+            return;
+        }
+
+        Gizmos.color = particleColor;
         for (int i = 0; i < particleCount; i++)
         {
-            Gizmos.color = new Color(0.3f, 0.3f, 0.9f) * fieldQuantities[i];
             Gizmos.DrawSphere(positions[i], 0.05f);
         }
     }

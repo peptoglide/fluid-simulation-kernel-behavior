@@ -22,25 +22,10 @@ public class Gradient : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(!hasCalculated)
-        {
-            Debug.Log($"Calculating gradients time at {DateTime.Now.ToString("HH:mm:ss")}");
-            gradients = new Vector2[particleCount];
-            CalculateGradient();
-            Debug.Log($"Finished gradients at {DateTime.Now.ToString("HH:mm:ss")}");
-            hasCalculated = true;
-        }
+
     }
 
-    void CalculateGradient()
-    {
-        for (int i = 0; i < particleCount; i++)
-        {
-            gradients[i] = GradientAt(positions[i]);
-        }
-    }
-
-    Vector2 GradientAt(Vector2 position)
+    public Vector2 GradientAt(Vector2 position)
     {
         Vector2 gradient = Vector2.zero;
         for (int i = 0; i < simulator.particleCount; i++)
