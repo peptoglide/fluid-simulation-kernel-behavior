@@ -23,15 +23,15 @@ public class Pressure : MonoBehaviour
         return pressureMult * (density - targetDensity);
     }
 
-    public Vector2 PressureGradientAtParticle(int particleId)
+    public Vector2 PressureGradientAtParticle(Vector2[] positions, int particleId)
     {
         Vector2 pressureGradient = Vector2.zero;
         for (int i = 0; i < simulator.particleCount; i++)
         {
-            Vector2 particlePos = simulator.positions[i];
-            Vector2 direction = (particlePos - simulator.positions[particleId]).normalized;
+            Vector2 particlePos = positions[i];
+            Vector2 direction = (particlePos - positions[particleId]).normalized;
 
-            float distance = Vector2.Distance(simulator.positions[particleId], particlePos);
+            float distance = Vector2.Distance(positions[particleId], particlePos);
             float kernelDerivative = simulator.SmoothingKernelDerivative(simulator.smoothingRadius, distance);
 
             float p_i = simulator.densities[particleId];

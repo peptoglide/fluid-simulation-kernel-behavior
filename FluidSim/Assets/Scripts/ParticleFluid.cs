@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Threading.Tasks;
 using Unity.Android.Gradle.Manifest;
+using Unity.VisualScripting;
 
 public class ParticleFluid : MonoBehaviour
 {
@@ -20,17 +21,21 @@ public class ParticleFluid : MonoBehaviour
     public float gravity = 9.81f;
     public float bounceDamping = 0.8f;
     public Vector2 simulationBounds = new Vector2(10f, 10f);
+    public float predictStep = 0.016f; 
     [Header("Rendering")]
     public Color particleColor = Color.white;
 
     public Vector2[] velocities { get; private set; }
     public Vector2[] positions { get; private set; }
-    public Vector2[] previousLocations { get; private set; }
+    public Vector2[] predictedPositions { get; private set; }
     public float[] fieldQuantities { get; private set; }
     public float[] densities { get; private set; }
+    // Store grid cell of particles
+    public int[] sortedParticles { get; private set; }
     public int particleCount { get; private set; }
     public float functionVolume { get; private set; }
     private Pressure pressureCalculator;
+    private SpatialGrid grid;
     private bool isRunning = false;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -41,11 +46,18 @@ public class ParticleFluid : MonoBehaviour
 
         densities = new float[particleCount];
         velocities = new Vector2[particleCount];
+        predictedPositions = new Vector2[particleCount];
         fieldQuantities = new float[particleCount];
+        sortedParticles = new int[particleCount];
+        for (int i = 0; i < particleCount; i++)
+        {
+            sortedParticles[i] = i;
+        }
 
         functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 4) / 6f;
 
         pressureCalculator = GetComponent<Pressure>();
+        grid = GetComponent<SpatialGrid>();
         isRunning = true;
     }
 
@@ -53,16 +65,27 @@ public class ParticleFluid : MonoBehaviour
     void Update()
     {
         float deltaTime = Time.deltaTime;
+
+        // Step ahead of time to stabilize simulation faster
         Parallel.For(0, particleCount, i =>
         {
             velocities[i] += Vector2.down * gravity * deltaTime;
-            densities[i] = CalculateDensity(positions[i]);
+            predictedPositions[i] = positions[i] + velocities[i] * predictStep;
+            // Clamping positions
+            predictedPositions[i].x = Mathf.Clamp(predictedPositions[i].x, -simulationBounds.x, simulationBounds.x);
+            predictedPositions[i].y = Mathf.Clamp(predictedPositions[i].y, -simulationBounds.y, simulationBounds.y);
         });
 
+        grid.UpdateSpatialGrid(predictedPositions);
+        Parallel.For(0, particleCount, i =>
+        {
+            densities[i] = CalculateDensity(predictedPositions, i);
+        });
+        
         // Pressure
         Parallel.For(0, particleCount, i =>
         {
-            Vector2 pressureForce = pressureCalculator.PressureGradientAtParticle(i);
+            Vector2 pressureForce = pressureCalculator.PressureGradientAtParticle(predictedPositions, i);
             velocities[i] += pressureForce / densities[i] * deltaTime;
         });
 
@@ -71,21 +94,27 @@ public class ParticleFluid : MonoBehaviour
         {
             positions[i] += velocities[i] * deltaTime;
             ResolveCollision(i);
-            previousLocations[i] = positions[i];
         });
     }
 
     void ResolveCollision(int i)
     {
-        if (positions[i].x < -simulationBounds.x || positions[i].x > simulationBounds.x)
+        if ((positions[i].x < -simulationBounds.x && velocities[i].x < 0) ||
+        (positions[i].x > simulationBounds.x && velocities[i].x > 0))
         {
             velocities[i].x *= -bounceDamping; // Bounce back with damping
         }
 
-        if (positions[i].y < -simulationBounds.y || positions[i].y > simulationBounds.y)
+        if ((positions[i].y < -simulationBounds.y && velocities[i].y < 0) || 
+        (positions[i].y > simulationBounds.y && velocities[i].y > 0))
         {
             velocities[i].y *= -bounceDamping; // Bounce back with damping
         }
+
+        float eps = 0f;
+        // Clamping positions
+        positions[i].x = Mathf.Clamp(positions[i].x, -simulationBounds.x + eps, simulationBounds.x - eps);
+        positions[i].y = Mathf.Clamp(positions[i].y, -simulationBounds.y + eps, simulationBounds.y - eps);
     }
 
     void CalculatePositions()
@@ -122,7 +151,6 @@ public class ParticleFluid : MonoBehaviour
                 positions[i] = new Vector2(x, y);
             }
         }
-        previousLocations = positions;
     }
 
     // Divide by volume to ensure normalized kernel i.e Integral all = 1
@@ -143,13 +171,44 @@ public class ParticleFluid : MonoBehaviour
         return -2f * (radius - distance) / functionVolume; // Derivative
     }
 
-    public float CalculateDensity(Vector2 position)
+    public float CalculateDensity(Vector2[] positions, int particleId)
     {
         float density = 0f;
-        foreach (Vector2 particlePos in positions)
+        // Only look at particles within a 3x3 square
+        Vector2 position = positions[particleId];
+        Vector2Int gridCell = grid.GetGridCell(position);
+        for (int x = gridCell.x - 1; x <= gridCell.x + 1; x++)
         {
-            float distance = Vector2.Distance(position, particlePos);
-            density += SmoothingKernel(smoothingRadius, distance);
+            for (int y = gridCell.y - 1; y <= gridCell.y + 1; y++)
+            {
+                if (x < 0 || x >= grid.width || y < 0 || y >= grid.height)
+                    continue;
+
+                int gridId = y * grid.width + x;
+                int startIdx = grid.startLocations[gridId];
+                int endIdx = (gridId + 1 == grid.width * grid.height) ? particleCount : grid.startLocations[gridId + 1];
+
+                for (int i = startIdx; i < endIdx; i++)
+                {
+                    Vector2 particlePos = predictedPositions[sortedParticles[i]];
+                    float distance = Vector2.Distance(position, particlePos);
+                    density += SmoothingKernel(smoothingRadius, distance);
+                }
+            }
+        }
+        if (density == 0) {
+            Debug.Log($"Cell {gridCell} at {position}");
+            int gridId = gridCell.y * grid.width + gridCell.x;
+            int start = grid.startLocations[gridId];
+            int end = (gridId + 1 == grid.width * grid.height) ? particleCount : grid.startLocations[gridId + 1];
+            Debug.Log($"Start: {start}, End: {end}");
+            for (int i = start; i < end; i++)
+            {
+                Vector2 particlePos = positions[sortedParticles[i]];
+                float distance = Vector2.Distance(position, particlePos);
+                Debug.Log($"Particle {sortedParticles[i]} at {particlePos}, distance: {distance}");
+            }
+            Debug.LogError($"Particle {position} has zero density.");
         }
         return density;
     }
@@ -171,6 +230,9 @@ public class ParticleFluid : MonoBehaviour
             }
             return;
         }
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireCube(Vector2.zero, simulationBounds * 2f);
 
         Gizmos.color = particleColor;
         for (int i = 0; i < particleCount; i++)

@@ -573,7 +573,7 @@ MonoBehaviour:
   mass: 1
   smoothingRadius: 1
   isRandom: 1
-  particleCountRandom: 1500
+  particleCountRandom: 1250
   boundSize: {x: 5, y: 3}
   gravity: 0
   bounceDamping: 0.8
@@ -607,7 +607,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   targetDensity: 1
-  pressureMult: 15
+  pressureMult: 1
 --- !u!114 &1223060309
 MonoBehaviour:
   m_ObjectHideFlags: 0
