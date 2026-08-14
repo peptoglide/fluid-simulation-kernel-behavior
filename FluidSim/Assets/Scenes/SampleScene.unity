@@ -568,13 +568,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94b1e8a5da56d5c41b04135151676a9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  sidelength: 12
-  particleSpacing: 0.28
+  sidelength: 40
+  particleSpacing: 0.13
   mass: 1
-  smoothingRadius: 1
+  smoothingRadius: 0.4
   isRandom: 1
-  particleCountRandom: 1500
-  boundSize: {x: 5, y: 3}
+  particleCountRandom: 3000
+  boundSize: {x: 6, y: 4}
   gravity: 0
   bounceDamping: 0.8
   simulationBounds: {x: 10, y: 6}
@@ -606,7 +606,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3756b1b0a8fa8b145a8bfa297e13d477, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  targetDensity: 1
+  targetDensity: 2
   pressureMult: 15
 --- !u!114 &1223060309
 MonoBehaviour:

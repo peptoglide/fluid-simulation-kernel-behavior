@@ -64,26 +64,6 @@ public class SpatialGrid : MonoBehaviour
         }
 
         Debug.Assert(tail == simulator.particleCount, "Tail does not match particle count after sorting.");
-        for (int cell = 0; cell < width * height; cell++)
-        {
-            int start = startLocations[cell];
-            int end = (cell == width * height - 1)
-                ? simulator.particleCount
-                : startLocations[cell + 1];
-
-            for (int j = start; j < end; j++)
-            {
-                int particle = simulator.sortedParticles[j];
-
-                if (currentCell[particle] != cell)
-                {
-                    Debug.LogError(
-                        $"BROKEN: particle {particle} says cell={currentCell[particle]}, " +
-                        $"but appears in cell={cell}, range [{start}, {end})"
-                    );
-                }
-            }
-        }
     }
 
     // Update is called once per frame
