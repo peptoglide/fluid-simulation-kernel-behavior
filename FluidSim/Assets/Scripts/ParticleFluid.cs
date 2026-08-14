@@ -26,6 +26,7 @@ public class ParticleFluid : MonoBehaviour
     public Color particleColor = Color.white;
 
     public Vector2[] velocities { get; private set; }
+    public Vector2[] accelerations { get; private set; }
     public Vector2[] positions { get; private set; }
     public Vector2[] predictedPositions { get; private set; }
     public float[] fieldQuantities { get; private set; }
@@ -45,8 +46,11 @@ public class ParticleFluid : MonoBehaviour
         CalculatePositions();
 
         densities = new float[particleCount];
+
         velocities = new Vector2[particleCount];
+        accelerations = new Vector2[particleCount];
         predictedPositions = new Vector2[particleCount];
+
         fieldQuantities = new float[particleCount];
         sortedParticles = new int[particleCount];
         for (int i = 0; i < particleCount; i++)
@@ -86,12 +90,14 @@ public class ParticleFluid : MonoBehaviour
         Parallel.For(0, particleCount, i =>
         {
             Vector2 pressureForce = pressureCalculator.PressureGradientAtParticle(predictedPositions, i);
-            velocities[i] += pressureForce / densities[i] * deltaTime;
+            Vector2 viscosityForce = pressureCalculator.ViscosityForceAtParticle(predictedPositions, i);
+            accelerations[i] = pressureForce + viscosityForce;
         });
 
         // Updating positions
         Parallel.For(0, particleCount, i =>
         {
+            velocities[i] += accelerations[i] / densities[i] * deltaTime;
             positions[i] += velocities[i] * deltaTime;
             ResolveCollision(i);
         });
@@ -171,32 +177,29 @@ public class ParticleFluid : MonoBehaviour
         return -2f * (radius - distance) / functionVolume; // Derivative
     }
 
+    // Second-order derivative of kernel function
+    public float SmoothingKernelSecondDerivative(float radius, float distance)
+    {
+        if (distance >= radius)
+            return 0f;
+
+        return 2f / functionVolume; // Second derivative
+    }
+
     public float CalculateDensity(Vector2[] positions, int particleId)
     {
         float density = 0f;
-        // Only look at particles within a 3x3 square
         Vector2 position = positions[particleId];
-        Vector2Int gridCell = grid.GetGridCell(position);
-        for (int x = gridCell.x - 1; x <= gridCell.x + 1; x++)
+        
+        grid.ForeachNeighborParticle(positions[particleId], i =>
         {
-            for (int y = gridCell.y - 1; y <= gridCell.y + 1; y++)
-            {
-                if (x < 0 || x >= grid.width || y < 0 || y >= grid.height)
-                    continue;
+            Vector2 particlePos = predictedPositions[i];
+            float distance = Vector2.Distance(position, particlePos);
+            density += SmoothingKernel(smoothingRadius, distance);
+        });
 
-                int gridId = y * grid.width + x;
-                int startIdx = grid.startLocations[gridId];
-                int endIdx = (gridId + 1 == grid.width * grid.height) ? particleCount : grid.startLocations[gridId + 1];
-
-                for (int i = startIdx; i < endIdx; i++)
-                {
-                    Vector2 particlePos = predictedPositions[sortedParticles[i]];
-                    float distance = Vector2.Distance(position, particlePos);
-                    density += SmoothingKernel(smoothingRadius, distance);
-                }
-            }
-        }
         if (density == 0) {
+            Vector2Int gridCell = grid.GetGridCell(position);
             Debug.Log($"Cell {gridCell} at {position}");
             int gridId = gridCell.y * grid.width + gridCell.x;
             int start = grid.startLocations[gridId];

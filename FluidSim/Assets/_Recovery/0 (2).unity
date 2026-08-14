@@ -568,15 +568,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94b1e8a5da56d5c41b04135151676a9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  sidelength: 50
-  particleSpacing: 0.15
+  sidelength: 40
+  particleSpacing: 0.13
   mass: 1
   smoothingRadius: 0.4
-  isRandom: 0
+  isRandom: 1
   particleCountRandom: 3000
   boundSize: {x: 6, y: 4}
-  gravity: 10
-  bounceDamping: 0.4
+  gravity: 8.5
+  bounceDamping: 0.8
   simulationBounds: {x: 10, y: 6}
   predictStep: 0.016
   particleColor: {r: 1, g: 1, b: 1, a: 1}
@@ -607,8 +607,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   targetDensity: 15
-  pressureMult: 30
-  viscosity: 0.4
+  pressureMult: 22.5
 --- !u!114 &1223060309
 MonoBehaviour:
   m_ObjectHideFlags: 0

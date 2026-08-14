@@ -66,6 +66,27 @@ public class SpatialGrid : MonoBehaviour
         Debug.Assert(tail == simulator.particleCount, "Tail does not match particle count after sorting.");
     }
 
+    public void ForeachNeighborParticle(Vector2 position, Action<int> actionAgainstParticleId)
+    {
+        Vector2Int gridCell = GetGridCell(position);
+        for (int x = gridCell.x - 1; x <= gridCell.x + 1; x++)
+        {
+            for (int y = gridCell.y - 1; y <= gridCell.y + 1; y++)
+            {
+                if (x < 0 || x >= width || y < 0 || y >= height)
+                    continue;
+
+                int gridId = y * width + x;
+                int startIdx = startLocations[gridId];
+                int endIdx = (gridId + 1 == width * height) ? simulator.particleCount : startLocations[gridId + 1];
+
+                for (int i = startIdx; i < endIdx; i++)
+                {
+                    actionAgainstParticleId(simulator.sortedParticles[i]);
+                }
+            }
+        }
+    }
     // Update is called once per frame
     void Update()
     {
