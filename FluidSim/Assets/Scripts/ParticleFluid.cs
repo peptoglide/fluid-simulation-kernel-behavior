@@ -236,7 +236,7 @@ public class ParticleFluid : MonoBehaviour
         if (distance >= radius)
             return 0f;
 
-        float thisFunctionVolume = -Mathf.PI * Mathf.Pow(radius, 4) / 2f;
+        float thisFunctionVolume = Mathf.PI * Mathf.Pow(radius, 5) / 10f; // Did I forget how to do derivatives??
         return -3f * (radius - distance) * (radius - distance) / thisFunctionVolume; 
     }
 
