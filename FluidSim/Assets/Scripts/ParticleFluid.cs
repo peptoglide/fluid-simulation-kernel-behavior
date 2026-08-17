@@ -25,6 +25,8 @@ public class ParticleFluid : MonoBehaviour
     [Header("Interaction")]
     public float mouseForceStrength = 10f;
     public float mouseRadius = 2f;
+    [Header("Determinism")]
+    public float timestepSeconds = 1f / 60f;
     [Header("Rendering")]
     public Color particleColor = Color.white;
 
@@ -36,12 +38,15 @@ public class ParticleFluid : MonoBehaviour
     public float[] densities { get; private set; }
     public float[] nearDensities { get; private set; }
     // Store grid cell of particles
-    public int[] sortedParticles { get; private set; }
+    public int[] sortedParticles;
     public int particleCount { get; private set; }
     public float functionVolume { get; private set; }
     private Pressure pressureCalculator;
     private SpatialGrid grid;
     private bool isRunning = false;
+
+    // Ensuring a fixed time step
+    private float accumulatedTime = 0f;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
@@ -77,6 +82,17 @@ public class ParticleFluid : MonoBehaviour
         float mouseInfluence = (Input.GetMouseButton(0) ? 1 : 0) - (Input.GetMouseButton(1) ? 1 : 0);
         Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
+        accumulatedTime += deltaTime;
+        accumulatedTime = Mathf.Clamp(accumulatedTime, 0f, timestepSeconds * 6f);
+        while (accumulatedTime >= timestepSeconds)
+        {
+            Simulate(timestepSeconds, mouseInfluence, mousePosition);
+            accumulatedTime -= timestepSeconds;
+        }
+    }
+
+    void Simulate(float deltaTime, float mouseInfluence, Vector2 mousePosition)
+    {
         // Step ahead of time to stabilize simulation faster
         Parallel.For(0, particleCount, i =>
         {
@@ -90,7 +106,7 @@ public class ParticleFluid : MonoBehaviour
         Parallel.For(0, particleCount, i =>
         {
             densities[i] = CalculateDensity(predictedPositions, i);
-            nearDensities[i] = CalculateNearDensity(predictedPositions, i);
+            if (pressureCalculator.nearPressureMult != 0f) nearDensities[i] = CalculateNearDensity(predictedPositions, i);
         });
         
         // Pressure

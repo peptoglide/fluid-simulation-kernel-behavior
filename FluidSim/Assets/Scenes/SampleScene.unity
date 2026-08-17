@@ -578,10 +578,11 @@ MonoBehaviour:
   gravity: 10
   bounceDamping: 0.4
   simulationBounds: {x: 10, y: 6}
-  predictStep: 0.016
+  predictStep: 0.02
   mouseForceStrength: 25
   mouseRadius: 3
-  particleColor: {r: 1, g: 1, b: 1, a: 1}
+  timestepSeconds: 0.02
+  particleColor: {r: 0.43867922, g: 0.75016105, b: 1, a: 1}
 --- !u!114 &1223060307
 MonoBehaviour:
   m_ObjectHideFlags: 0
