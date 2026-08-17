@@ -22,6 +22,9 @@ public class ParticleFluid : MonoBehaviour
     public float bounceDamping = 0.8f;
     public Vector2 simulationBounds = new Vector2(10f, 10f);
     public float predictStep = 0.016f; 
+    [Header("Interaction")]
+    public float mouseForceStrength = 10f;
+    public float mouseRadius = 2f;
     [Header("Rendering")]
     public Color particleColor = Color.white;
 
@@ -31,6 +34,7 @@ public class ParticleFluid : MonoBehaviour
     public Vector2[] predictedPositions { get; private set; }
     public float[] fieldQuantities { get; private set; }
     public float[] densities { get; private set; }
+    public float[] nearDensities { get; private set; }
     // Store grid cell of particles
     public int[] sortedParticles { get; private set; }
     public int particleCount { get; private set; }
@@ -46,6 +50,7 @@ public class ParticleFluid : MonoBehaviour
         CalculatePositions();
 
         densities = new float[particleCount];
+        nearDensities = new float[particleCount];
 
         velocities = new Vector2[particleCount];
         accelerations = new Vector2[particleCount];
@@ -69,11 +74,12 @@ public class ParticleFluid : MonoBehaviour
     void Update()
     {
         float deltaTime = Time.deltaTime;
+        float mouseInfluence = (Input.GetMouseButton(0) ? 1 : 0) - (Input.GetMouseButton(1) ? 1 : 0);
+        Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
         // Step ahead of time to stabilize simulation faster
         Parallel.For(0, particleCount, i =>
         {
-            velocities[i] += Vector2.down * gravity * deltaTime;
             predictedPositions[i] = positions[i] + velocities[i] * predictStep;
             // Clamping positions
             predictedPositions[i].x = Mathf.Clamp(predictedPositions[i].x, -simulationBounds.x, simulationBounds.x);
@@ -84,6 +90,7 @@ public class ParticleFluid : MonoBehaviour
         Parallel.For(0, particleCount, i =>
         {
             densities[i] = CalculateDensity(predictedPositions, i);
+            nearDensities[i] = CalculateNearDensity(predictedPositions, i);
         });
         
         // Pressure
@@ -91,7 +98,16 @@ public class ParticleFluid : MonoBehaviour
         {
             Vector2 pressureForce = pressureCalculator.PressureGradientAtParticle(predictedPositions, i);
             Vector2 viscosityForce = pressureCalculator.ViscosityForceAtParticle(predictedPositions, i);
-            accelerations[i] = pressureForce + viscosityForce;
+
+            accelerations[i] = pressureForce 
+            + viscosityForce 
+            + Vector2.down * gravity * densities[i];
+
+            // Mouse
+            if (mouseInfluence != 0f)
+            {
+                accelerations[i] += MouseForce(mousePosition, predictedPositions[i], mouseInfluence) * densities[i];
+            }
         });
 
         // Updating positions
@@ -101,6 +117,17 @@ public class ParticleFluid : MonoBehaviour
             positions[i] += velocities[i] * deltaTime;
             ResolveCollision(i);
         });
+    }
+
+    Vector2 MouseForce(Vector2 mousePosition, Vector2 position, float mouseInfluence)
+    {
+        Vector2 difference = mousePosition - position;
+
+        float distance = difference.magnitude;
+        if (distance > mouseRadius || distance < 0.001f) return Vector2.zero;
+
+        float influence = mouseForceStrength;
+        return mouseInfluence * influence * difference.normalized;
     }
 
     void ResolveCollision(int i)
@@ -168,6 +195,16 @@ public class ParticleFluid : MonoBehaviour
         return (radius - distance) * (radius - distance) / functionVolume; // (r-d)^2 for steeper derivatives near 0
     }
 
+    // Near density to prevent clustering
+    public float NearSmoothingKernel(float radius, float distance)
+    {
+        if (distance >= radius)
+            return 0f;
+
+        float thisFunctionVolume = Mathf.PI * Mathf.Pow(radius, 5) / 10f;
+        return (radius - distance) * (radius - distance) * (radius - distance) / thisFunctionVolume; 
+    }
+
     // Derivative of kernel function
     public float SmoothingKernelDerivative(float radius, float distance)
     {
@@ -175,6 +212,16 @@ public class ParticleFluid : MonoBehaviour
             return 0f;
 
         return -2f * (radius - distance) / functionVolume; // Derivative
+    }
+
+     // Near density to prevent clustering
+    public float NearSmoothingKernelDerivative(float radius, float distance)
+    {
+        if (distance >= radius)
+            return 0f;
+
+        float thisFunctionVolume = -Mathf.PI * Mathf.Pow(radius, 4) / 2f;
+        return -3f * (radius - distance) * (radius - distance) / thisFunctionVolume; 
     }
 
     // Second-order derivative of kernel function
@@ -197,23 +244,21 @@ public class ParticleFluid : MonoBehaviour
             float distance = Vector2.Distance(position, particlePos);
             density += SmoothingKernel(smoothingRadius, distance);
         });
-
-        if (density == 0) {
-            Vector2Int gridCell = grid.GetGridCell(position);
-            Debug.Log($"Cell {gridCell} at {position}");
-            int gridId = gridCell.y * grid.width + gridCell.x;
-            int start = grid.startLocations[gridId];
-            int end = (gridId + 1 == grid.width * grid.height) ? particleCount : grid.startLocations[gridId + 1];
-            Debug.Log($"Start: {start}, End: {end}");
-            for (int i = start; i < end; i++)
-            {
-                Vector2 particlePos = positions[sortedParticles[i]];
-                float distance = Vector2.Distance(position, particlePos);
-                Debug.Log($"Particle {sortedParticles[i]} at {particlePos}, distance: {distance}");
-            }
-            Debug.LogError($"Particle {position} has zero density.");
-        }
         return density;
+    }
+
+    public float CalculateNearDensity(Vector2[] positions, int particleId)
+    {
+        float nearDensity = 0f;
+        Vector2 position = positions[particleId];
+        
+        grid.ForeachNeighborParticle(positions[particleId], i =>
+        {
+            Vector2 particlePos = predictedPositions[i];
+            float distance = Vector2.Distance(position, particlePos);
+            nearDensity += NearSmoothingKernel(smoothingRadius, distance);
+        });
+        return nearDensity;
     }
 
     void OnDrawGizmos()

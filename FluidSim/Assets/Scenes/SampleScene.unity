@@ -573,12 +573,14 @@ MonoBehaviour:
   mass: 1
   smoothingRadius: 0.4
   isRandom: 0
-  particleCountRandom: 3000
+  particleCountRandom: 5000
   boundSize: {x: 6, y: 4}
   gravity: 10
   bounceDamping: 0.4
   simulationBounds: {x: 10, y: 6}
   predictStep: 0.016
+  mouseForceStrength: 25
+  mouseRadius: 3
   particleColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &1223060307
 MonoBehaviour:
@@ -606,9 +608,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3756b1b0a8fa8b145a8bfa297e13d477, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  targetDensity: 15
-  pressureMult: 30
-  viscosity: 0.4
+  targetDensity: 30
+  pressureMult: 40
+  nearPressureMult: 0
+  viscosity: 0.2
 --- !u!114 &1223060309
 MonoBehaviour:
   m_ObjectHideFlags: 0
