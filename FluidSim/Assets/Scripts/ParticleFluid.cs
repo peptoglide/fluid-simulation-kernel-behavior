@@ -40,10 +40,10 @@ public class ParticleFluid : MonoBehaviour
     // Store grid cell of particles
     public int[] sortedParticles;
     public int particleCount { get; private set; }
-    public float functionVolume { get; private set; }
     private Pressure pressureCalculator;
     private SpatialGrid grid;
     private bool isRunning = false;
+    private Kernel kernel;
 
     // Ensuring a fixed time step
     private float accumulatedTime = 0f;
@@ -52,6 +52,7 @@ public class ParticleFluid : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        kernel = new DefaultKernel(smoothingRadius);
         CalculatePositions();
 
         densities = new float[particleCount];
@@ -67,8 +68,6 @@ public class ParticleFluid : MonoBehaviour
         {
             sortedParticles[i] = i;
         }
-
-        functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 4) / 6f;
 
         pressureCalculator = GetComponent<Pressure>();
         grid = GetComponent<SpatialGrid>();
@@ -202,51 +201,28 @@ public class ParticleFluid : MonoBehaviour
         }
     }
 
-    // Divide by volume to ensure normalized kernel i.e Integral all = 1
-    public float SmoothingKernel(float radius, float distance)
-    {
-        if (distance >= radius)
-            return 0f;
-
-        return (radius - distance) * (radius - distance) / functionVolume; // (r-d)^2 for steeper derivatives near 0
-    }
-
     // Near density to prevent clustering
-    public float NearSmoothingKernel(float radius, float distance)
+    public float NearSmoothingKernel(float radius, float sqrDistance)
     {
-        if (distance >= radius)
+        if (pressureCalculator.nearPressureMult == 0f) return 0f;
+        if (sqrDistance >= radius * radius)
             return 0f;
 
         float thisFunctionVolume = Mathf.PI * Mathf.Pow(radius, 5) / 10f;
+        float distance = Mathf.Sqrt(sqrDistance);
         return (radius - distance) * (radius - distance) * (radius - distance) / thisFunctionVolume; 
     }
 
-    // Derivative of kernel function
-    public float SmoothingKernelDerivative(float radius, float distance)
-    {
-        if (distance >= radius)
-            return 0f;
-
-        return -2f * (radius - distance) / functionVolume; // Derivative
-    }
-
      // Near density to prevent clustering
-    public float NearSmoothingKernelDerivative(float radius, float distance)
+    public float NearSmoothingKernelDerivative(float radius, float sqrDistance)
     {
-        if (distance >= radius)
+        if (pressureCalculator.nearPressureMult == 0f) return 0f;
+        if (sqrDistance >= radius * radius)
             return 0f;
 
         float thisFunctionVolume = Mathf.PI * Mathf.Pow(radius, 5) / 10f; // Did I forget how to do derivatives??
+        float distance = Mathf.Sqrt(sqrDistance);
         return -3f * (radius - distance) * (radius - distance) / thisFunctionVolume; 
-    }
-
-    // Second-order derivative of kernel function
-    public float SmoothingKernelSecondDerivative(float radius, float distance)
-    {
-        if (distance >= radius)
-            return 0f;
-
-        return 2f / functionVolume; // Second derivative
     }
 
     public float CalculateDensity(Vector2[] positions, int particleId)
@@ -257,8 +233,8 @@ public class ParticleFluid : MonoBehaviour
         grid.ForeachNeighborParticle(positions[particleId], i =>
         {
             Vector2 particlePos = predictedPositions[i];
-            float distance = Vector2.Distance(position, particlePos);
-            density += SmoothingKernel(smoothingRadius, distance);
+            float sqrDistance = (particlePos - position).sqrMagnitude;
+            density += SmoothingKernel(sqrDistance);
         });
         return density;
     }
@@ -275,6 +251,19 @@ public class ParticleFluid : MonoBehaviour
             nearDensity += NearSmoothingKernel(smoothingRadius, distance);
         });
         return nearDensity;
+    }
+
+    public float SmoothingKernel(float sqrDistance)
+    {
+        return kernel.SmoothingKernel(sqrDistance);
+    }
+    public float SmoothingKernelDerivative(float sqrDistance)
+    {
+        return kernel.SmoothingKernelDerivative(sqrDistance);
+    }
+    public float SmoothingKernelSecondDerivative(float sqrDistance)
+    {
+        return kernel.SmoothingKernelSecondDerivative(sqrDistance);
     }
 
     void OnDrawGizmos()

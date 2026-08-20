@@ -670,7 +670,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1223060304}
   - component: {fileID: 1223060305}
-  - component: {fileID: 1223060307}
   - component: {fileID: 1223060308}
   - component: {fileID: 1223060309}
   - component: {fileID: 1223060310}
@@ -724,20 +723,6 @@ MonoBehaviour:
   timestepSeconds: 0.02
   particleColor: {r: 0.43867922, g: 0.75016105, b: 1, a: 1}
   sortedParticles: 
---- !u!114 &1223060307
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1223060303}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e6eccd6f0d9802f4b84c4917a189e138, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  sidelength: 30
-  particleSpacing: 0.35
 --- !u!114 &1223060308
 MonoBehaviour:
   m_ObjectHideFlags: 0

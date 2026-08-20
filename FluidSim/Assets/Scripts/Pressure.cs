@@ -43,15 +43,16 @@ public class Pressure : MonoBehaviour
         grid.ForeachNeighborParticle(position, i =>
         {
             Vector2 particlePos = positions[i];
-            float distance = Vector2.Distance(position, particlePos);
+            Vector2 direction = particlePos - position;
+            float sqrDistance = direction.sqrMagnitude;
 
-            if (distance == 0f)
+            if (sqrDistance == 0f)
                 return; // Skip self
             
-            Vector2 direction = (particlePos - position) / distance; // Normalize direction but do this to save 
+            Vector2 directionNormalized = direction.normalized; 
 
-            float kernelDerivative = simulator.SmoothingKernelDerivative(simulator.smoothingRadius, distance);
-            float nearDerivative = simulator.NearSmoothingKernelDerivative(simulator.smoothingRadius, distance);
+            float kernelDerivative = simulator.SmoothingKernelDerivative(sqrDistance);
+            float nearDerivative = simulator.NearSmoothingKernelDerivative(simulator.smoothingRadius, sqrDistance);
 
             (float thisPressure, float thisNearPressure) = DensityToPressure(simulator.densities[particleId],
             simulator.nearDensities[particleId]);
@@ -62,9 +63,9 @@ public class Pressure : MonoBehaviour
             float sharedPressure = (thisPressure + otherPressure) / 2f;
             float sharedNearPressure = (thisNearPressure + otherNearPressure) / 2f;
 
-            pressureGradient += simulator.mass * sharedPressure * kernelDerivative * direction / simulator.densities[i];
+            pressureGradient += simulator.mass * sharedPressure * kernelDerivative * directionNormalized / simulator.densities[i];
             // Near density
-            pressureGradient += simulator.mass * sharedNearPressure * nearDerivative * direction / simulator.densities[i];
+            pressureGradient += simulator.mass * sharedNearPressure * nearDerivative * directionNormalized / simulator.densities[i];
         });
         return pressureGradient;
     }
@@ -79,13 +80,12 @@ public class Pressure : MonoBehaviour
         grid.ForeachNeighborParticle(position, i =>
         {
             Vector2 particlePos = positions[i];
-            float distance = Vector2.Distance(position, particlePos);
+            float sqrDistance = (particlePos - position).sqrMagnitude;
 
-            if (distance == 0f)
+            if (sqrDistance == 0f)
                 return; // Skip self
             
-            Vector2 direction = (particlePos - position) / distance; // Normalize direction but do this to save 
-            float kernelSecondDerivative = simulator.SmoothingKernelSecondDerivative(simulator.smoothingRadius, distance);
+            float kernelSecondDerivative = simulator.SmoothingKernelSecondDerivative(sqrDistance);
 
             Vector2 v_i = simulator.velocities[particleId];
             Vector2 v_j = simulator.velocities[i];
