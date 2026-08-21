@@ -52,7 +52,7 @@ public class ParticleFluid : MonoBehaviour
     {
         // Initializing kernel functions
         Instance = this;
-        kernel = new DefaultKernel(smoothingRadius);
+        kernel = new DesbrunKernel(smoothingRadius);
         CalculatePositions();
 
         // Init arrays
@@ -258,13 +258,13 @@ public class ParticleFluid : MonoBehaviour
     {
         return kernel.SmoothingKernel(sqrDistance);
     }
-    public float SmoothingKernelDerivative(float sqrDistance)
+    public float KernelGradient(float sqrDistance)
     {
-        return kernel.SmoothingKernelDerivative(sqrDistance);
+        return kernel.KernelGradient(sqrDistance);
     }
-    public float SmoothingKernelSecondDerivative(float sqrDistance)
+    public float KernelLaplacian(float sqrDistance)
     {
-        return kernel.SmoothingKernelSecondDerivative(sqrDistance);
+        return kernel.KernelLaplacian(sqrDistance);
     }
 
     void OnDrawGizmos()

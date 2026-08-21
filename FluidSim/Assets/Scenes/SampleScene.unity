@@ -707,7 +707,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94b1e8a5da56d5c41b04135151676a9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  sidelength: 54
+  sidelength: 50
   particleSpacing: 0.2
   mass: 1
   smoothingRadius: 0.4

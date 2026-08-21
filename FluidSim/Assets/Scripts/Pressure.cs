@@ -51,7 +51,7 @@ public class Pressure : MonoBehaviour
             
             Vector2 directionNormalized = direction.normalized; 
 
-            float kernelDerivative = simulator.SmoothingKernelDerivative(sqrDistance);
+            float kernelDerivative = simulator.KernelGradient(sqrDistance);
             float nearDerivative = simulator.NearSmoothingKernelDerivative(simulator.smoothingRadius, sqrDistance);
 
             (float thisPressure, float thisNearPressure) = DensityToPressure(simulator.densities[particleId],
@@ -85,7 +85,7 @@ public class Pressure : MonoBehaviour
             if (sqrDistance == 0f)
                 return; // Skip self
             
-            float kernelSecondDerivative = simulator.SmoothingKernelSecondDerivative(sqrDistance);
+            float kernelSecondDerivative = simulator.KernelLaplacian(sqrDistance);
 
             Vector2 v_i = simulator.velocities[particleId];
             Vector2 v_j = simulator.velocities[i];

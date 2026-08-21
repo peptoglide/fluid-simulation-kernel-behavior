@@ -1,16 +1,16 @@
 using UnityEngine;
 
-// Spiky but ^2
-public class DefaultKernel : Kernel
+// Spiky
+public class DesbrunKernel : Kernel
 {
     private float _smoothingRadius;
     private float _radiusSqr;
     private float _functionVolume;
-    public DefaultKernel(float smoothingRadius)
+    public DesbrunKernel(float smoothingRadius)
     {
         _smoothingRadius = smoothingRadius;
         _radiusSqr = smoothingRadius * smoothingRadius;
-        _functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 4) / 6f;
+        _functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 5) / 10f;
     }
     
     public float SmoothingKernel(float sqrDistance)
@@ -19,7 +19,7 @@ public class DefaultKernel : Kernel
             return 0f;
 
         float distance = Mathf.Sqrt(sqrDistance);
-        return (_smoothingRadius - distance) * (_smoothingRadius - distance) / _functionVolume; // (r-d)^2 for steeper derivatives near 0
+        return (_smoothingRadius - distance) * (_smoothingRadius - distance) * (_smoothingRadius - distance) / _functionVolume; // (r-d)^2 for steeper derivatives near 0
     }
     public float KernelGradient(float sqrDistance)
     {
@@ -27,7 +27,7 @@ public class DefaultKernel : Kernel
             return 0f;
 
         float distance = Mathf.Sqrt(sqrDistance);
-        return -2f * (_smoothingRadius - distance) / _functionVolume; // Derivative
+        return -3f * (_smoothingRadius - distance) * (_smoothingRadius - distance) / _functionVolume; // Derivative
     }
     public float KernelLaplacian(float sqrDistance)
     {
@@ -35,6 +35,6 @@ public class DefaultKernel : Kernel
             return 0f;
 
         float distance = Mathf.Sqrt(sqrDistance);
-        return 2f / _functionVolume + KernelGradient(sqrDistance) / distance; // Second derivative
+        return 6f * (_smoothingRadius - distance) / _functionVolume + KernelGradient(sqrDistance) / distance; // Second derivative
     }
 }
