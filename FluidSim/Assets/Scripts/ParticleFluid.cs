@@ -34,7 +34,6 @@ public class ParticleFluid : MonoBehaviour
     public Vector2[] accelerations { get; private set; }
     public Vector2[] positions { get; private set; }
     public Vector2[] predictedPositions { get; private set; }
-    public float[] fieldQuantities { get; private set; }
     public float[] densities { get; private set; }
     public float[] nearDensities { get; private set; }
     // Store grid cell of particles
@@ -51,10 +50,12 @@ public class ParticleFluid : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
+        // Initializing kernel functions
         Instance = this;
         kernel = new DefaultKernel(smoothingRadius);
         CalculatePositions();
 
+        // Init arrays
         densities = new float[particleCount];
         nearDensities = new float[particleCount];
 
@@ -62,13 +63,13 @@ public class ParticleFluid : MonoBehaviour
         accelerations = new Vector2[particleCount];
         predictedPositions = new Vector2[particleCount];
 
-        fieldQuantities = new float[particleCount];
         sortedParticles = new int[particleCount];
         for (int i = 0; i < particleCount; i++)
         {
             sortedParticles[i] = i;
         }
 
+        // Getting auxiliary components
         pressureCalculator = GetComponent<Pressure>();
         grid = GetComponent<SpatialGrid>();
         isRunning = true;

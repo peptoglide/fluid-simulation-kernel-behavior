@@ -1,15 +1,16 @@
+using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
 
-public class DefaultKernel : Kernel
+public class FirstKernel : Kernel
 {
     private float _smoothingRadius;
     private float _radiusSqr;
     private float _functionVolume;
-    public DefaultKernel(float smoothingRadius)
+    public FirstKernel(float smoothingRadius)
     {
         _smoothingRadius = smoothingRadius;
         _radiusSqr = smoothingRadius * smoothingRadius;
-        _functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 4) / 6f;
+        _functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 8) / 4f;
     }
     
     public float SmoothingKernel(float sqrDistance)
@@ -17,22 +18,24 @@ public class DefaultKernel : Kernel
         if (sqrDistance >= _radiusSqr)
             return 0f;
 
-        float distance = Mathf.Sqrt(sqrDistance);
-        return (_smoothingRadius - distance) * (_smoothingRadius - distance) / _functionVolume; // (r-d)^2 for steeper derivatives near 0
+        float sqrDifference = _smoothingRadius - sqrDistance;
+        return sqrDifference * sqrDifference * sqrDifference / _functionVolume;
     }
     public float SmoothingKernelDerivative(float sqrDistance)
     {
         if (sqrDistance >= _radiusSqr)
             return 0f;
 
+        float sqrDifference = _smoothingRadius - sqrDistance;
         float distance = Mathf.Sqrt(sqrDistance);
-        return -2f * (_smoothingRadius - distance) / _functionVolume; // Derivative
+        return -6f * sqrDifference * sqrDifference * distance / _functionVolume; // Derivative
     }
     public float SmoothingKernelSecondDerivative(float sqrDistance)
     {
         if (sqrDistance >= _radiusSqr)
             return 0f;
 
-        return 2f / _functionVolume; // Second derivative
+        float sqrDifference = _smoothingRadius - sqrDistance;
+        return (-6f * sqrDifference * sqrDifference + 24f * sqrDifference * sqrDistance) / _functionVolume; // Second derivative
     }
 }

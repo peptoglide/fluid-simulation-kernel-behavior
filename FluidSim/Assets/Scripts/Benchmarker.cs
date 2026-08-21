@@ -85,10 +85,15 @@ public class Benchmarker : MonoBehaviour
     void CalculateTotalVelocity()
     {
         float totalVelocity = 0f;
+        float rms = 0f;
+
         Parallel.For(0, fluid.particleCount, i =>
         {
             totalVelocity += fluid.velocities[i].magnitude;
+            rms += fluid.velocities[i].sqrMagnitude;
         });
-        velocityText.SetText($"Total & Avg velocity: {totalVelocity:F2} & {totalVelocity/fluid.particleCount:F2}");
+        rms = Mathf.Sqrt(rms / fluid.particleCount);
+
+        velocityText.SetText($"Total & RMS velocity: {totalVelocity:F2} & {rms:F2}");
     }
 }
