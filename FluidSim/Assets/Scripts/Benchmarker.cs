@@ -35,25 +35,41 @@ public class Benchmarker : MonoBehaviour
     [Header("Performance")]
     public float recalculationDelay = 0.25f;
     public float sampleWindow = 5f;
+    public float stepRecalc = 0.25f;
+    public float stepSampleWindow = 2f;
     [Header("Fluid Behavior")]
     public float velocityRecalc = 0.5f;
+    public int stabilityChecks = 5;
+    public float stabilityThreshold = 1000f;
+    public float densityRecalc = 0.2f;
     [Header("UI")]
     public TextMeshProUGUI frameText;
     public TextMeshProUGUI velocityText;
+    public TextMeshProUGUI stabilityText;
+    public TextMeshProUGUI densityErrorText;
+    public TextMeshProUGUI timePerStepText;
     
     private ParticleFluid fluid;
     private Queue frameTimes = new Queue();
+    private Queue stepTimes = new Queue();
     private List<CooldownActions> cooldownActions;
-    private float timeSum;
+    private float timeSumFPS;
+    private float timeSumSteps;
+    private float timeElapsed;
+    private int stableCount = 0;
 
     void Start()
     {
         cooldownActions = new()
         {
             new(recalculationDelay, CalculateFPS),
-            new(velocityRecalc, CalculateTotalVelocity)
+            new(velocityRecalc, CalculateTotalVelocity),
+            new(densityRecalc, CalculateDensityError),
+            new(stepRecalc, CalculateAvgSteptime)
         };
         fluid = GetComponent<ParticleFluid>();
+
+        fluid.onFinishSimulationStep += AddStepIntoQueue;
     }
 
     // Update is called once per frame
@@ -62,11 +78,12 @@ public class Benchmarker : MonoBehaviour
         float dt = Time.deltaTime;
 
         frameTimes.Enqueue(dt);
-        timeSum += dt;
+        timeSumFPS += dt;
+        timeElapsed += dt;
 
-        while (timeSum > sampleWindow)
+        while (timeSumFPS > sampleWindow)
         {
-            timeSum -= (float)frameTimes.Dequeue();
+            timeSumFPS -= (float)frameTimes.Dequeue();
         }
 
         // Ticking timers
@@ -78,8 +95,14 @@ public class Benchmarker : MonoBehaviour
 
     void CalculateFPS()
     {
-        float fps = timeSum == 0 ? 0f : frameTimes.Count / timeSum;
+        float fps = timeSumFPS == 0 ? 0f : frameTimes.Count / timeSumFPS;
         frameText.SetText($"FPS last {sampleWindow}s: {fps}");
+    }
+
+    void CalculateAvgSteptime()
+    {
+        float avgSteps = timeSumSteps == 0 ? 0f : timeSumSteps / stepTimes.Count;
+        timePerStepText.SetText($"Avg step last {stepSampleWindow}s: {avgSteps}");
     }
 
     void CalculateTotalVelocity()
@@ -94,6 +117,37 @@ public class Benchmarker : MonoBehaviour
         });
         rms = Mathf.Sqrt(rms / fluid.particleCount);
 
+        if (rms <= stabilityThreshold) stableCount++;
+        else stableCount = Mathf.Min(stableCount, 0);
+
+        if (stableCount >= stabilityChecks)
+        {
+            stabilityText.SetText($"Stable after {timeElapsed:F3}s");
+            stableCount = -9999;
+        }
+
         velocityText.SetText($"Total & RMS velocity: {totalVelocity:F2} & {rms:F2}");
+    }
+
+    void CalculateDensityError()
+    {
+        float totalDensityError = 0f;
+
+        Parallel.For(0, fluid.particleCount, i =>
+        {
+            totalDensityError += Mathf.Abs(fluid.densities[i] - fluid.pressureCalculator.targetDensity);
+        });
+        densityErrorText.SetText($"Avg density error: {totalDensityError / fluid.pressureCalculator.targetDensity / fluid.particleCount:F2}");
+    }
+
+    void AddStepIntoQueue(float stepTime)
+    {
+        timeSumSteps += stepTime;
+        stepTimes.Enqueue(stepTime);
+
+        while (timeSumSteps > stepSampleWindow)
+        {
+            timeSumSteps -= (float)stepTimes.Dequeue();
+        }
     }
 }

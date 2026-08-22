@@ -1,7 +1,6 @@
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
-using Unity.Android.Gradle.Manifest;
 using Unity.VisualScripting;
 
 public class ParticleFluid : MonoBehaviour
@@ -39,10 +38,15 @@ public class ParticleFluid : MonoBehaviour
     // Store grid cell of particles
     public int[] sortedParticles;
     public int particleCount { get; private set; }
-    private Pressure pressureCalculator;
+    public Pressure pressureCalculator;
+    public Action<float> onFinishSimulationStep;
+
+
     private SpatialGrid grid;
     private bool isRunning = false;
     private Kernel kernel;
+
+    private float lastStepTime = 0f;
 
     // Ensuring a fixed time step
     private float accumulatedTime = 0f;
@@ -52,7 +56,7 @@ public class ParticleFluid : MonoBehaviour
     {
         // Initializing kernel functions
         Instance = this;
-        kernel = new DesbrunKernel(smoothingRadius);
+        kernel = new DesbrunCustomLaplacianKernel(smoothingRadius);
         CalculatePositions();
 
         // Init arrays
@@ -93,6 +97,7 @@ public class ParticleFluid : MonoBehaviour
 
     void Simulate(float deltaTime, float mouseInfluence, Vector2 mousePosition)
     {
+        float start = Time.realtimeSinceStartup;
         // Step ahead of time to stabilize simulation faster
         Parallel.For(0, particleCount, i =>
         {
@@ -133,6 +138,9 @@ public class ParticleFluid : MonoBehaviour
             positions[i] += velocities[i] * deltaTime;
             ResolveCollision(i);
         });
+
+        lastStepTime = Time.realtimeSinceStartup - start;
+        onFinishSimulationStep?.Invoke(lastStepTime);
     }
 
     Vector2 MouseForce(Vector2 mousePosition, Vector2 position, float mouseInfluence)
@@ -161,9 +169,15 @@ public class ParticleFluid : MonoBehaviour
         }
 
         float eps = 0f;
+        float translation = 0.01f;
         // Clamping positions
         positions[i].x = Mathf.Clamp(positions[i].x, -simulationBounds.x + eps, simulationBounds.x - eps);
         positions[i].y = Mathf.Clamp(positions[i].y, -simulationBounds.y + eps, simulationBounds.y - eps);
+
+        if (positions[i].x == -simulationBounds.x + eps) positions[i].x += translation;
+        if (positions[i].x == simulationBounds.x + eps) positions[i].x -= translation;
+        if (positions[i].y == -simulationBounds.y + eps) positions[i].y += translation;
+        if (positions[i].y == simulationBounds.y + eps) positions[i].y -= translation;
     }
 
     void CalculatePositions()

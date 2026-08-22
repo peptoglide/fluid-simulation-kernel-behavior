@@ -985,7 +985,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   sidelength: 50
-  particleSpacing: 0.15
+  particleSpacing: 0.2
   mass: 1
   smoothingRadius: 0.4
   isRandom: 0
@@ -1047,7 +1047,7 @@ MonoBehaviour:
   stepSampleWindow: 2
   velocityRecalc: 0.5
   stabilityChecks: 5
-  stabilityThreshold: 0.5
+  stabilityThreshold: 800
   densityRecalc: 0.2
   frameText: {fileID: 109001866}
   velocityText: {fileID: 1380980158}
