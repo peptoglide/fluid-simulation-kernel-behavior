@@ -27,6 +27,7 @@ public class ParticleFluid : MonoBehaviour
     [Header("Determinism")]
     public float timestepSeconds = 1f / 60f;
     [Header("Rendering")]
+    public bool render = true;
     public Color particleColor = Color.white;
 
     public Vector2[] velocities { get; private set; }
@@ -56,7 +57,7 @@ public class ParticleFluid : MonoBehaviour
     {
         // Initializing kernel functions
         Instance = this;
-        kernel = new DesbrunCustomLaplacianKernel(smoothingRadius);
+        kernel = new DesbrunKernel(smoothingRadius);
         CalculatePositions();
 
         // Init arrays
@@ -283,6 +284,7 @@ public class ParticleFluid : MonoBehaviour
 
     void OnDrawGizmos()
     {
+        if (!render) return;
         if (!isRunning)
         {
             Gizmos.color = Color.green;

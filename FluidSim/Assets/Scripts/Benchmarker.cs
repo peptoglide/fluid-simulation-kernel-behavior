@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMPro;
+using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -48,6 +49,13 @@ public class Benchmarker : MonoBehaviour
     public TextMeshProUGUI stabilityText;
     public TextMeshProUGUI densityErrorText;
     public TextMeshProUGUI timePerStepText;
+
+    [Header("Stable UI")]
+    public TextMeshProUGUI stableStepAverage;
+    public TextMeshProUGUI stableDensitySTD;
+    public TextMeshProUGUI stableMaxDensityError;
+    public TextMeshProUGUI stableMeanDensityError;
+    public TextMeshProUGUI stableMaxVelocity; 
     
     private ParticleFluid fluid;
     private Queue frameTimes = new Queue();
@@ -57,6 +65,7 @@ public class Benchmarker : MonoBehaviour
     private float timeSumSteps;
     private float timeElapsed;
     private int stableCount = 0;
+    private float maxVelocity = 0f;
 
     void Start()
     {
@@ -110,11 +119,13 @@ public class Benchmarker : MonoBehaviour
         float totalVelocity = 0f;
         float rms = 0f;
 
-        Parallel.For(0, fluid.particleCount, i =>
+        for (int i = 0; i < fluid.particleCount; i++)
         {
-            totalVelocity += fluid.velocities[i].magnitude;
-            rms += fluid.velocities[i].sqrMagnitude;
-        });
+            float mag = fluid.velocities[i].magnitude;
+            maxVelocity = Mathf.Max(maxVelocity, mag);
+            totalVelocity += mag;
+            rms += mag * mag; // sqrMagnitude
+        }
         rms = Mathf.Sqrt(rms / fluid.particleCount);
 
         if (rms <= stabilityThreshold) stableCount++;
@@ -123,6 +134,7 @@ public class Benchmarker : MonoBehaviour
         if (stableCount >= stabilityChecks)
         {
             stabilityText.SetText($"Stable after {timeElapsed:F3}s");
+            CalculateStabilityMetrics();
             stableCount = -9999;
         }
 
@@ -133,10 +145,10 @@ public class Benchmarker : MonoBehaviour
     {
         float totalDensityError = 0f;
 
-        Parallel.For(0, fluid.particleCount, i =>
+        for (int i = 0; i < fluid.particleCount; i++)
         {
             totalDensityError += Mathf.Abs(fluid.densities[i] - fluid.pressureCalculator.targetDensity);
-        });
+        }
         densityErrorText.SetText($"Avg density error: {totalDensityError / fluid.pressureCalculator.targetDensity / fluid.particleCount:F2}");
     }
 
@@ -149,5 +161,46 @@ public class Benchmarker : MonoBehaviour
         {
             timeSumSteps -= (float)stepTimes.Dequeue();
         }
+    }
+
+    public float RelativeDensityStd(float[] densities)
+    {
+        float sum = 0f;
+        for (int i = 0; i < densities.Length; i++) sum += densities[i];
+
+        float mean = sum / densities.Length;
+
+        float squaredDifferenceSum = 0f;
+        for (int i = 0; i < densities.Length; i++)
+        {
+            squaredDifferenceSum += (densities[i] - mean) * (densities[i] - mean);
+        }
+
+        float std = Mathf.Sqrt(squaredDifferenceSum / densities.Length);
+        return std / mean;
+    }
+
+    void CalculateStabilityMetrics()
+    {
+        float avgSteps = timeSumSteps == 0 ? 0f : timeSumSteps / stepTimes.Count;
+        float densitySTD = RelativeDensityStd(fluid.densities);
+
+        float maxDensityError = 0f;
+        float totalDensityError = 0f;
+
+        for (int i = 0; i < fluid.particleCount; i++)
+        {
+            maxDensityError = Mathf.Max(maxDensityError, Mathf.Abs(fluid.densities[i] - fluid.pressureCalculator.targetDensity));
+            totalDensityError += Mathf.Abs(fluid.densities[i] - fluid.pressureCalculator.targetDensity);
+        }
+        float maxRelativeDensityError = maxDensityError / fluid.pressureCalculator.targetDensity;
+        float meanRelativeDensityError = totalDensityError / fluid.pressureCalculator.targetDensity / fluid.particleCount;
+        float maxVelocityOverSimulation = maxVelocity;
+
+        stableStepAverage.SetText($"Settle avg step over {stepSampleWindow}s: {avgSteps:F5}");
+        stableDensitySTD.SetText($"Density STD: {densitySTD * 100:F3}%");
+        stableMaxDensityError.SetText($"Max density error: {maxRelativeDensityError:F3}");
+        stableMeanDensityError.SetText($"Mean density error: {meanRelativeDensityError:F3}");
+        stableMaxVelocity.SetText($"Max velocity over simulation: {maxVelocityOverSimulation:F3}");
     }
 }
