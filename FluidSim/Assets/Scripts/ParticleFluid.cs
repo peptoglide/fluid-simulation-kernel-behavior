@@ -89,6 +89,7 @@ public class ParticleFluid : MonoBehaviour
 
         accumulatedTime += deltaTime;
         accumulatedTime = Mathf.Clamp(accumulatedTime, 0f, timestepSeconds * 6f);
+        accumulatedTime = timestepSeconds; // Try to force simulation per frame
         while (accumulatedTime >= timestepSeconds)
         {
             Simulate(timestepSeconds, mouseInfluence, mousePosition);

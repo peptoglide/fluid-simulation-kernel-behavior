@@ -1599,8 +1599,8 @@ MonoBehaviour:
   sampleWindow: 2
   stepRecalc: 0.25
   stepSampleWindow: 2
-  velocityRecalc: 0.5
-  stabilityChecks: 5
+  velocityRecalc: 0.1
+  stabilityChecks: 25
   stabilityThreshold: 0.65
   densityRecalc: 0.2
   frameText: {fileID: 109001866}

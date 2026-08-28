@@ -66,6 +66,7 @@ public class Benchmarker : MonoBehaviour
     private float timeElapsed;
     private int stableCount = 0;
     private float maxVelocity = 0f;
+    private int simulationStepsTotal = 0;
 
     void Start()
     {
@@ -133,7 +134,7 @@ public class Benchmarker : MonoBehaviour
 
         if (stableCount >= stabilityChecks)
         {
-            stabilityText.SetText($"Stable after {timeElapsed:F3}s");
+            stabilityText.SetText($"Stable after {simulationStepsTotal} steps");
             CalculateStabilityMetrics();
             stableCount = -9999;
         }
@@ -161,6 +162,7 @@ public class Benchmarker : MonoBehaviour
         {
             timeSumSteps -= (float)stepTimes.Dequeue();
         }
+        simulationStepsTotal++;
     }
 
     public float RelativeDensityStd(float[] densities)
