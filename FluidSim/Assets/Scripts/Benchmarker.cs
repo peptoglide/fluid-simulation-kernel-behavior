@@ -9,19 +9,19 @@ using UnityEngine.UI;
 
 class CooldownActions
 {
-    private float _cooldown;
-    private float _currentCooldown;
+    private int _cooldown;
+    private int _currentCooldown;
     private Action _action;
-    public CooldownActions(float cooldown, Action action)
+    public CooldownActions(int cooldown, Action action)
     {
         _cooldown = cooldown;
         _currentCooldown = _cooldown;
         _action = action;
     }
 
-    public void Tick(float deltaTime)
+    public void Tick(int tickCount)
     {
-        _currentCooldown -= deltaTime;
+        _currentCooldown -= tickCount;
 
         if (_currentCooldown <= 0f)
         {
@@ -34,15 +34,15 @@ class CooldownActions
 public class Benchmarker : MonoBehaviour
 {
     [Header("Performance")]
-    public float recalculationDelay = 0.25f;
+    public int recalculationDelay = 15;
     public float sampleWindow = 5f;
-    public float stepRecalc = 0.25f;
+    public int stepRecalc = 15;
     public float stepSampleWindow = 2f;
     [Header("Fluid Behavior")]
-    public float velocityRecalc = 0.5f;
+    public int velocityRecalc = 6;
     public int stabilityChecks = 5;
     public float stabilityThreshold = 1000f;
-    public float densityRecalc = 0.2f;
+    public int densityRecalc = 12;
     [Header("UI")]
     public TextMeshProUGUI frameText;
     public TextMeshProUGUI velocityText;
@@ -99,7 +99,7 @@ public class Benchmarker : MonoBehaviour
         // Ticking timers
         for (int i = 0; i < cooldownActions.Count; i++)
         {
-            cooldownActions[i].Tick(dt);
+            cooldownActions[i].Tick(1);
         }
     }
 
