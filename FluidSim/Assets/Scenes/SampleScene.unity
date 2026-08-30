@@ -1537,7 +1537,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94b1e8a5da56d5c41b04135151676a9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  sidelength: 35
+  sidelength: 40
   particleSpacing: 0.15
   mass: 1
   smoothingRadius: 0.4
@@ -1567,7 +1567,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3756b1b0a8fa8b145a8bfa297e13d477, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  targetDensity: 27
+  targetDensity: 25
   pressureMult: 40
   nearPressureMult: 0
   viscosity: 0.2
@@ -1595,14 +1595,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9f39a81cf97ba84b95acf5d6cdd64b7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  recalculationDelay: 0.25
+  recalculationDelay: 15
   sampleWindow: 2
-  stepRecalc: 0.25
+  stepRecalc: 15
   stepSampleWindow: 2
-  velocityRecalc: 0.1
+  velocityRecalc: 6
   stabilityChecks: 25
   stabilityThreshold: 0.65
-  densityRecalc: 0.2
+  densityRecalc: 12
   frameText: {fileID: 109001866}
   velocityText: {fileID: 1380980158}
   stabilityText: {fileID: 765012861}

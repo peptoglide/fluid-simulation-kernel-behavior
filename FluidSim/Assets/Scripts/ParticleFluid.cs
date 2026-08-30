@@ -57,7 +57,7 @@ public class ParticleFluid : MonoBehaviour
     {
         // Initializing kernel functions
         Instance = this;
-        kernel = new CubicSplineKernel(smoothingRadius);
+        kernel = new DesbrunCustomLaplacianKernel(smoothingRadius);
         CalculatePositions();
 
         // Init arrays
