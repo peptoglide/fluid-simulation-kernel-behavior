@@ -1,2 +1,0 @@
-﻿kernel,msPerStep,settleSteps,settleDensitySTD,settleMaxDensityError,settleMeanDensityError,maxVelocity
-SpikyNonNegativeViscosity,0.01717,732,24.61603,2.15982,0.97187,14.96361

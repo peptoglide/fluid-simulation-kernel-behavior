@@ -23,6 +23,7 @@ public class CSVWriter : MonoBehaviour
     [ContextMenu("Write template CSV file")]
     void WriteTemplate()
     {
+        _filePath = Path.Combine(Application.dataPath, csvName + ".csv");
         string[] columns =
         {
             "kernel",
