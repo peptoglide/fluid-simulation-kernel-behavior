@@ -1503,6 +1503,7 @@ GameObject:
   - component: {fileID: 1223060308}
   - component: {fileID: 1223060309}
   - component: {fileID: 1223060310}
+  - component: {fileID: 1223060311}
   m_Layer: 0
   m_Name: Manager
   m_TagString: Untagged
@@ -1613,6 +1614,19 @@ MonoBehaviour:
   stableMaxDensityError: {fileID: 1080674113}
   stableMeanDensityError: {fileID: 1020898443}
   stableMaxVelocity: {fileID: 41992754}
+--- !u!114 &1223060311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1223060303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82eba95691b49e645a5951016fcf143e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  csvName: Fluid0.02
 --- !u!1 &1236947913
 GameObject:
   m_ObjectHideFlags: 0

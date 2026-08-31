@@ -58,6 +58,7 @@ public class Benchmarker : MonoBehaviour
     public TextMeshProUGUI stableMaxVelocity; 
     
     private ParticleFluid fluid;
+    private CSVWriter writer;
     private Queue frameTimes = new Queue();
     private Queue stepTimes = new Queue();
     private List<CooldownActions> cooldownActions;
@@ -78,6 +79,7 @@ public class Benchmarker : MonoBehaviour
             new(stepRecalc, CalculateAvgSteptime)
         };
         fluid = GetComponent<ParticleFluid>();
+        writer = GetComponent<CSVWriter>();
 
         fluid.onFinishSimulationStep += AddStepIntoQueue;
     }
@@ -204,5 +206,17 @@ public class Benchmarker : MonoBehaviour
         stableMaxDensityError.SetText($"Max density error: {maxRelativeDensityError:F3}");
         stableMeanDensityError.SetText($"Mean density error: {meanRelativeDensityError:F3}");
         stableMaxVelocity.SetText($"Max velocity over simulation: {maxVelocityOverSimulation:F3}");
+
+        string[] metrics =
+        {
+            fluid.kernel.GetName(),
+            avgSteps.ToString("F5"),
+            simulationStepsTotal.ToString(),
+            (densitySTD * 100).ToString("F5"),
+            maxRelativeDensityError.ToString("F5"),
+            meanRelativeDensityError.ToString("F5"),
+            maxVelocityOverSimulation.ToString("F5")
+        };
+        writer.UpdateKernel(metrics);
     }
 }

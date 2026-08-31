@@ -45,7 +45,7 @@ public class ParticleFluid : MonoBehaviour
 
     private SpatialGrid grid;
     private bool isRunning = false;
-    private Kernel kernel;
+    public Kernel kernel { get; private set; }
 
     private float lastStepTime = 0f;
 
