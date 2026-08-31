@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class CSVWriter : MonoBehaviour
 {
+    public bool record = false;
     public string csvName;
     private string _filePath;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -55,6 +56,7 @@ public class CSVWriter : MonoBehaviour
     /// <param name="metrics">Metrics to be recorded. Include kernel name as first element</param>
     public void UpdateKernel(string[] metrics)
     {
+        if (!record) return;
         if (!File.Exists(_filePath))
         {
             WriteTemplate();

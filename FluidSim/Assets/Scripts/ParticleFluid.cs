@@ -3,6 +3,16 @@ using System;
 using System.Threading.Tasks;
 using Unity.VisualScripting;
 
+public enum KernelEnum
+{
+    Poly6 = 0,
+    SpikyPower2 = 1,
+    Spiky = 2,
+    SpikyCustomViscosity = 3,
+    CubicSpline = 4,
+    WendlandC2 = 5
+}
+
 public class ParticleFluid : MonoBehaviour
 {
     public static ParticleFluid Instance { get; private set; }
@@ -20,6 +30,7 @@ public class ParticleFluid : MonoBehaviour
     public float gravity = 9.81f;
     public float bounceDamping = 0.8f;
     public Vector2 simulationBounds = new Vector2(10f, 10f);
+    public KernelEnum smoothingKernel;
     public float predictStep = 0.016f; 
     [Header("Interaction")]
     public float mouseForceStrength = 10f;
@@ -46,6 +57,7 @@ public class ParticleFluid : MonoBehaviour
     private SpatialGrid grid;
     private bool isRunning = false;
     public Kernel kernel { get; private set; }
+    private Kernel[] kernelOptions;
 
     private float lastStepTime = 0f;
 
@@ -55,9 +67,18 @@ public class ParticleFluid : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
-        // Initializing kernel functions
         Instance = this;
-        kernel = new DesbrunCustomLaplacianKernel(smoothingRadius);
+
+        kernelOptions = new Kernel[]{
+            new FirstKernel(smoothingRadius),
+            new DefaultKernel(smoothingRadius),
+            new DesbrunKernel(smoothingRadius),
+            new DesbrunCustomLaplacianKernel(smoothingRadius),
+            new CubicSplineKernel(smoothingRadius),
+            new WendlandKernel(smoothingRadius)
+        };
+        // Initializing kernel functions
+        kernel = kernelOptions[(int)smoothingKernel];
         CalculatePositions();
 
         // Init arrays
@@ -78,6 +99,20 @@ public class ParticleFluid : MonoBehaviour
         pressureCalculator = GetComponent<Pressure>();
         grid = GetComponent<SpatialGrid>();
         isRunning = true;
+    }
+
+    void OnValidate()
+    {
+        kernelOptions = new Kernel[]{
+            new FirstKernel(smoothingRadius),
+            new DefaultKernel(smoothingRadius),
+            new DesbrunKernel(smoothingRadius),
+            new DesbrunCustomLaplacianKernel(smoothingRadius),
+            new CubicSplineKernel(smoothingRadius),
+            new WendlandKernel(smoothingRadius)
+        };
+        // Initializing kernel functions
+        kernel = kernelOptions[(int)smoothingKernel];
     }
 
     // Simulation step
