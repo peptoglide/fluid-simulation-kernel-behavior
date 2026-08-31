@@ -20,6 +20,7 @@ public class ParticleFluid : MonoBehaviour
     [Header("Initial Configuration")]
     public int sidelength; 
     public float particleSpacing;
+    public float yOffset;
     public float mass = 1f;
     public float smoothingRadius = 1f;
     [Header("Random Config")]
@@ -232,7 +233,7 @@ public class ParticleFluid : MonoBehaviour
                 {
                     float x = i * particleSpacing - midpoint;
                     float y = j * particleSpacing - midpoint;
-                    positions[i * sidelength + j] = new Vector2(x, y);
+                    positions[i * sidelength + j] = new Vector2(x, y + yOffset);
                 }
             }
         }

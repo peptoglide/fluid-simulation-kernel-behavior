@@ -19,7 +19,9 @@ public class SpatialGrid : MonoBehaviour
     void Start()
     {
         simulator = ParticleFluid.Instance;
-        gridSize = simulator.smoothingRadius;
+        gridSize = simulator.kernel.GetName() == "CubicSpline" ? 
+        simulator.smoothingRadius * 2f :
+        simulator.smoothingRadius;
 
         width = Mathf.CeilToInt(simulator.simulationBounds.x * 2f / gridSize);
         height = Mathf.CeilToInt(simulator.simulationBounds.y * 2f / gridSize);

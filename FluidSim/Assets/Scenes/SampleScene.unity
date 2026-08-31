@@ -1540,6 +1540,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   sidelength: 40
   particleSpacing: 0.15
+  yOffset: 0
   mass: 1
   smoothingRadius: 0.4
   isRandom: 0
@@ -1627,7 +1628,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82eba95691b49e645a5951016fcf143e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  record: 0
+  record: 1
   csvName: CSVs/Fluid0.02
 --- !u!1 &1236947913
 GameObject:
