@@ -12,6 +12,8 @@ public class DesbrunKernel : Kernel
         _radiusSqr = smoothingRadius * smoothingRadius;
         _functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 5) / 10f;
     }
+
+    public string GetName() => "Spiky";
     
     public float SmoothingKernel(float sqrDistance)
     {

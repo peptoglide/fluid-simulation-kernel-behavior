@@ -12,6 +12,8 @@ public class DefaultKernel : Kernel
         _radiusSqr = smoothingRadius * smoothingRadius;
         _functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 4) / 6f;
     }
+
+    public string GetName() => "SpikyBut^2";
     
     public float SmoothingKernel(float sqrDistance)
     {

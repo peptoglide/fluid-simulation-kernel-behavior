@@ -13,6 +13,8 @@ public class FirstKernel : Kernel
         _radiusSqr = smoothingRadius * smoothingRadius;
         _functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 8) / 4f;
     }
+
+    public string GetName() => "Poly6";
     
     public float SmoothingKernel(float sqrDistance)
     {

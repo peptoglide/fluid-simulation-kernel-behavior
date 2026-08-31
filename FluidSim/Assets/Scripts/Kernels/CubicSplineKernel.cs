@@ -12,6 +12,8 @@ public class CubicSplineKernel : Kernel
         _radiusSqr = smoothingRadius * smoothingRadius;
         _functionVolume = 7f * Mathf.PI * Mathf.Pow(smoothingRadius, 2) / 40f;
     }
+
+    public string GetName() => "CubicSpline";
     
     public float SmoothingKernel(float sqrDistance)
     {
