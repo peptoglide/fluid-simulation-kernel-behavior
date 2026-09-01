@@ -1542,14 +1542,14 @@ MonoBehaviour:
   particleSpacing: 0.15
   yOffset: 0
   mass: 1
-  smoothingRadius: 0.2
+  smoothingRadius: 0.4
   isRandom: 0
   particleCountRandom: 5000
   boundSize: {x: 6, y: 4}
   gravity: 0
   bounceDamping: 0.4
   simulationBounds: {x: 10, y: 6}
-  smoothingKernel: 4
+  smoothingKernel: 5
   predictStep: 0.02
   mouseForceStrength: 25
   mouseRadius: 3
@@ -1604,7 +1604,7 @@ MonoBehaviour:
   stepSampleWindow: 2
   velocityRecalc: 6
   stabilityChecks: 25
-  stabilityThreshold: 0.35
+  stabilityThreshold: 0.1
   densityRecalc: 12
   frameText: {fileID: 109001866}
   velocityText: {fileID: 1380980158}
@@ -1629,7 +1629,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   record: 1
-  csvName: CSVs/Air0.02
+  csvName: CSVs/LowerAir0.02
 --- !u!1 &1236947913
 GameObject:
   m_ObjectHideFlags: 0

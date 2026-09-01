@@ -1542,14 +1542,14 @@ MonoBehaviour:
   particleSpacing: 0.15
   yOffset: 0
   mass: 1
-  smoothingRadius: 0.2
+  smoothingRadius: 0.4
   isRandom: 0
   particleCountRandom: 5000
   boundSize: {x: 6, y: 4}
   gravity: 10
   bounceDamping: 0.4
   simulationBounds: {x: 10, y: 6}
-  smoothingKernel: 4
+  smoothingKernel: 0
   predictStep: 0.02
   mouseForceStrength: 25
   mouseRadius: 3
@@ -1573,7 +1573,7 @@ MonoBehaviour:
   targetDensity: 25
   pressureMult: 40
   nearPressureMult: 0
-  viscosity: 0.2
+  viscosity: 0.5
 --- !u!114 &1223060309
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1628,8 +1628,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82eba95691b49e645a5951016fcf143e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  record: 1
-  csvName: CSVs/Fluid0.02lowervisc
+  record: 0
+  csvName: CSVs/Fluid0.02
 --- !u!1 &1236947913
 GameObject:
   m_ObjectHideFlags: 0

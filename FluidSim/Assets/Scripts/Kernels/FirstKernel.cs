@@ -21,7 +21,7 @@ public class FirstKernel : Kernel
         if (sqrDistance >= _radiusSqr)
             return 0f;
 
-        float sqrDifference = _smoothingRadius - sqrDistance;
+        float sqrDifference = _radiusSqr - sqrDistance;
         return sqrDifference * sqrDifference * sqrDifference / _functionVolume;
     }
     public float KernelGradient(float sqrDistance)
@@ -29,7 +29,7 @@ public class FirstKernel : Kernel
         if (sqrDistance >= _radiusSqr)
             return 0f;
 
-        float sqrDifference = _smoothingRadius - sqrDistance;
+        float sqrDifference = _radiusSqr - sqrDistance;
         float distance = Mathf.Sqrt(sqrDistance);
         return -6f * sqrDifference * sqrDifference * distance / _functionVolume; // Derivative
     }
@@ -39,7 +39,7 @@ public class FirstKernel : Kernel
             return 0f;
 
         float distance = Mathf.Sqrt(sqrDistance);
-        float sqrDifference = _smoothingRadius - sqrDistance;
+        float sqrDifference = _radiusSqr - sqrDistance;
 
         return (-6f * sqrDifference * sqrDifference + 24f * sqrDifference * sqrDistance) / _functionVolume
         + KernelGradient(sqrDistance) / distance; // Laplacian
