@@ -1542,14 +1542,14 @@ MonoBehaviour:
   particleSpacing: 0.15
   yOffset: 0
   mass: 1
-  smoothingRadius: 0.4
+  smoothingRadius: 0.2
   isRandom: 0
   particleCountRandom: 5000
   boundSize: {x: 6, y: 4}
   gravity: 0
   bounceDamping: 0.4
   simulationBounds: {x: 10, y: 6}
-  smoothingKernel: 3
+  smoothingKernel: 4
   predictStep: 0.02
   mouseForceStrength: 25
   mouseRadius: 3

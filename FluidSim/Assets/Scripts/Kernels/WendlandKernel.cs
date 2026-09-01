@@ -10,7 +10,7 @@ public class WendlandKernel : Kernel
     {
         _smoothingRadius = smoothingRadius;
         _radiusSqr = smoothingRadius * smoothingRadius;
-        _functionVolume = 4f * Mathf.PI * Mathf.Pow(smoothingRadius, 2) / 7f;
+        _functionVolume = Mathf.PI * Mathf.Pow(smoothingRadius, 2) / 7f;
     }
 
     public string GetName() => "WendlandC2";
