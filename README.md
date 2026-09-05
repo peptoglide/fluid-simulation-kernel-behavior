@@ -88,7 +88,7 @@ Otherwise, even with a high enough $h$, increasing $h$ would change the density 
 Kernels are compared under these initial arrangements:
 - Number of particles $n=1600$ with mass $m=1$. The particles are arranged in a square $40 \times 40$ spaced $0.15$ apart.
 - Smoothing radius $h=0.4$ except for **CubicSpline** with $h=0.2$ since its support radius is actually $2h$
-- Each frame steps $t=0.02s$ into the future. The predict step is also $0.02s$
+- Each frame steps $dt=0.02s$ into the future. The predict step is also $0.02s$
 - The particles try to maintain a rest density with pressure multiplier $k=40$ and viscosity $\mu=0.5$
 - Collisions with the simulation bounds are simplified into a simple translation + damped velocity reflection 
 
@@ -111,7 +111,7 @@ Specific configurations for this scenario:
 
 This is a relatively simple experiment to see if each kernel will eventually settle down and reach a uniform state.
 
-Results of `Air0.02.csv` ($t=0.02s$):
+Results of `Air0.02.csv` ($dt=0.02s$):
 | kernel                    |   msPerStep |   settleSteps |   settleDensitySTD |   settleMaxDensityError |   settleMeanDensityError |   maxVelocity |
 |:--------------------------|------------:|--------------:|-------------------:|------------------------:|-------------------------:|--------------:|
 | SpikyPower2               |     0.00853 |           606 |            0.42228 |                 0.23546 |                  0.196   |       9.16744 |
@@ -121,10 +121,55 @@ Results of `Air0.02.csv` ($t=0.02s$):
 | WendlandC2                |     0.00569 |           756 |            0.10875 |                 0.40585 |                  0.39381 |       8.50875 |
 | Poly6                     |     0.00565 |           882 |            3.68355 |                 0.59555 |                  0.00855 |       7.58753 |
 
-Overall, all kernels performed quite well at this task except for **Poly6**. Although it produced smooth density estimates, the gradient vanishes at $r$ close to $0$, causing low pressure and particles to clump together instead of spreading apart. That explains **Poly6**'s density stdev, and **CubicSpline** settled in a way such that one side was denser than the other and was very slow to resolve. 
+Overall, all kernels performed quite well at this task except for **Poly6**. Although it produced smooth density estimates, the gradient vanishes at $r$ close to $0$, causing low pressure and particles to clump together instead of spreading apart. That explains **Poly6**'s density **settleDensitySTD**, and **CubicSpline** settled in a way such that one side was denser than the other and was very slow to resolve. 
 
 Mean density error is explained by the fact that some kernels settle at a state with small holes in their particle configurations. One can try to mitigate this by allowing the air more time to settle at the cost of computation time. Plus, for $\rho=10$, the error is not that significant.
 
 For traditional use (maybe with a shader that blends things together), such small variations aren't dealbreakers. Except for **Poly6**, all would be suitable. If accuracy is preferred, the current problem is that the particle count is too sparse for the simulation bounds, therefore leaving holes. Increasing $n$ to $3025$ and setting $\rho=20$ allows the particles to fill the space much more uniformly, and I was able to measure a mean error of $\leq 0.1$ for **Spiky** variants, though with more computation time.
 
-**Poly6**'s smoothness when approaching $0$ means it is the slowest kernel. On the other hand, **Spiky**s are steep torwards $0$, so particles tend to be very fast and responsive (and sometimes explosive).
+**Poly6**'s smoothness when approaching $0$ means it is the slowest kernel. On the other hand, **Spiky**s are steep torwards $0$, so particles tend to be very fast and responsive (and sometimes explosive). 
+
+**Poly6**'s use of $r^2$ also means the computation doesn't need to square root the distance, theoretically saving computation time for density calculations. However I don't find much of a difference even with $n=10000$. It is surprising how **Spiky**s seem to take the most time compared to **CubicSpline** and **WendlandC2** even though **CubicSpline** also needs a $\sqrt{}$ operation and has one more `if` statement.
+
+### b. Fluid
+Specific configurations for this scenario:
+- Gravity $g=10$
+- Target density $\rho=25$
+- Settle threshold $v=0.65$
+
+Fluid will be dropped and settle at the bottom. We measure metrics on the stabilization behavior of each kernel given a chaotic initial state.
+
+Results of `Fluid0.02.csv`:
+| kernel                    |   msPerStep |   settleSteps |   settleDensitySTD |   settleMaxDensityError |   settleMeanDensityError |   maxVelocity |
+|:--------------------------|------------:|--------------:|-------------------:|------------------------:|-------------------------:|--------------:|
+| SpikyNonNegativeViscosity |     0.02323 |           720 |            24.6142 |                 2.15491 |                  0.99648 |       13.4754 |
+| SpikyPower2               |     0.02195 |           726 |            26.3461 |                 2.03652 |                  0.87711 |       14.0056 |
+| Spiky                     |     0.02399 |           726 |            24.6942 |                 2.06978 |                  0.98631 |       40.4287 |
+| CubicSpline               |     0.02322 |           588 |            30.0363 |                 3.21126 |                  0.85109 |       12.7304 |
+| WendlandC2                |     0.01622 |           726 |            27.5017 |                 2.71221 |                  0.8264  |       13.8732 |
+| Poly6                     |     0.0166  |           438 |            39.0713 |                 2.96113 |                  1.01158 |       13.924  |
+
+**msPerStep** is noticably higher as particles clump together more to achieve $\rho=25$, causing the average neighbors of a particle to increase. 
+
+The steps to settle are also comparable to `Air0.02.csv` except for our outlier here **Poly6**. Under gravity, **Poly6**'s gradient gives up and particles ultimately merge into clumps separated by $h$. While this may not be accurate, this makes **Poly6** efficient to settle and may also explain its lower **msPerStep**. Importantly, the fluid still retains its general shape and exhibits convincing behavior when disregarding individual particles. Therefore **Poly6** is quite suitable for real-time uses combined with an algorithm that renders the fluid as one big shape (a shader or marching cubes for example). Unfortunately, **Poly6** suffers in accuracy because of this behavior. 
+
+One notable result is the insane density relative standard deviation of each kernel. This is due to the fluid being compressed at the bottom to support the weight of the fluid. The way to solve this is to increase the pressure multiplier $k$ so that each particle has a stronger push force, enforcing near imcompressibility. 
+
+This approach comes with a drawback of course. The simulation easily becomes unstable at $dt=0.02$, so we need finer steps for stable behavior. Use this approach when trying to maximize realism. 
+
+Results of `FluidStrong0.01.csv`, tested at $k=200$ and $dt=0.01$:
+| kernel                    |   settleSteps |   settleDensitySTD |   settleMaxDensityError |   settleMeanDensityError |   maxVelocity |
+|:--------------------------|--------------:|-------------------:|------------------------:|-------------------------:|--------------:|
+| SpikyNonNegativeViscosity |          1560 |           11.1579  |                 0.54635 |                  0.27522 |       16.7738 |
+| Poly6                     |           852 |           12.9695  |                 0.9827  |                  0.18069 |       19.6091 |
+| SpikyPower2               |          1590 |            8.9076  |                 0.43166 |                  0.19131 |      163.446  |
+| Spiky                     |          1368 |           11.1359  |                 0.54551 |                  0.27518 |       16.3676 |
+| CubicSpline               |          1650 |            9.39093 |                 0.57284 |                  0.16622 |       19.2703 |
+| WendlandC2                |          1860 |            9.32416 |                 0.46608 |                  0.1787  |       18.591  |
+
+The results are much more accurate physically, at the cost of time. Kernels need roughly double the number of frames to settle, but density metrics look much more promising compared to `Fluid0.02.csv`. One can go even further with increasing $k$ and taking even finer steps. 
+
+Back to `Fluid0.02.csv`, **settleDensitySTD** is bad, but **CubicSpline** and **WendlandC2** have it worse than **Spiky**s (also true for **settleMaxDensityError**). The two kernels as well as **Poly6** suffer from a vanishing gradient to ensure smoothness, differing by the extent. **Poly6** is very smooth, **CubicSpline** is sharper and **WendlandC2** is the sharpest nearing $r=0$. So **CubicSpline** exhibits slight clumping as well, and **WendlandC2** is sharp enough that such clumping is visually indistinct (though the metrics prove it exists). Doing a lot of tests, the max velocities of **CubicSpline** and **WendlandC2** also tend not to explode. This makes these kernels some of the most well-rounded and suitable for a lot of use cases, as they can maintain a smooth density field by having a smooth top while not suffering too much from a vanishing gradient. 
+
+On the topic of **maxVelocity**, what's up with **Spiky**'s $40.4287$ and **SpikyPower2**'s $163.446$? Viscosity is calculated on the laplacian of each kernel, and it turns out that **Spiky** and **SpikyPower2** can have a negative laplacian, introducing sudden velocity into the simulation. With gravity applied, particles accumulate at the bottom and may get very close to one another, causing some particles to explode and reach unrealistic speeds. **SpikyNonNegativeViscosity** fixes this by having a custom kernel used only for viscosity that's positive at every distance. Aside from this artifact, **Spiky** is useful for a consistently responsive simulation as the gradient is meaningful at every point, though it doesn't produce a smooth density field since the function isn't smooth at $r=0$. Generally, **SpikyNonNegativeViscosity** is preferred as it fixes exploding particles while only slightly altering behavior.
+

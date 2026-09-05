@@ -1549,7 +1549,7 @@ MonoBehaviour:
   gravity: 0
   bounceDamping: 0.4
   simulationBounds: {x: 10, y: 6}
-  smoothingKernel: 5
+  smoothingKernel: 2
   predictStep: 0.02
   mouseForceStrength: 25
   mouseRadius: 3
@@ -1628,7 +1628,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82eba95691b49e645a5951016fcf143e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  record: 1
+  record: 0
   csvName: CSVs/LowerAir0.02
 --- !u!1 &1236947913
 GameObject:
