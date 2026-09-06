@@ -132,6 +132,7 @@ For traditional use (maybe with a shader that blends things together), such smal
 **Poly6**'s use of $r^2$ also means the computation doesn't need to square root the distance, theoretically saving computation time for density calculations. However I don't find much of a difference even with $n=10000$. It is surprising how **Spiky**s seem to take the most time compared to **CubicSpline** and **WendlandC2** even though **CubicSpline** also needs a $\sqrt{}$ operation and has one more `if` statement.
 
 ### b. Fluid
+#### Overall behavior
 Specific configurations for this scenario:
 - Gravity $g=10$
 - Target density $\rho=25$
@@ -171,5 +172,36 @@ The results are much more accurate physically, at the cost of time. Kernels need
 
 Back to `Fluid0.02.csv`, **settleDensitySTD** is bad, but **CubicSpline** and **WendlandC2** have it worse than **Spiky**s (also true for **settleMaxDensityError**). The two kernels as well as **Poly6** suffer from a vanishing gradient to ensure smoothness, differing by the extent. **Poly6** is very smooth, **CubicSpline** is sharper and **WendlandC2** is the sharpest nearing $r=0$. So **CubicSpline** exhibits slight clumping as well, and **WendlandC2** is sharp enough that such clumping is visually indistinct (though the metrics prove it exists). Doing a lot of tests, the max velocities of **CubicSpline** and **WendlandC2** also tend not to explode. This makes these kernels some of the most well-rounded and suitable for a lot of use cases, as they can maintain a smooth density field by having a smooth top while not suffering too much from a vanishing gradient. 
 
-On the topic of **maxVelocity**, what's up with **Spiky**'s $40.4287$ and **SpikyPower2**'s $163.446$? Viscosity is calculated on the laplacian of each kernel, and it turns out that **Spiky** and **SpikyPower2** can have a negative laplacian, introducing sudden velocity into the simulation. With gravity applied, particles accumulate at the bottom and may get very close to one another, causing some particles to explode and reach unrealistic speeds. **SpikyNonNegativeViscosity** fixes this by having a custom kernel used only for viscosity that's positive at every distance. Aside from this artifact, **Spiky** is useful for a consistently responsive simulation as the gradient is meaningful at every point, though it doesn't produce a smooth density field since the function isn't smooth at $r=0$. Generally, **SpikyNonNegativeViscosity** is preferred as it fixes exploding particles while only slightly altering behavior.
+On the topic of **maxVelocity**, what's up with **Spiky**'s $40.4287$ and **SpikyPower2**'s $163.446$? Viscosity is calculated on the laplacian of each kernel, and it turns out that **Spiky** and **SpikyPower2** can have a negative laplacian, introducing sudden velocity into the simulation. With gravity applied, particles accumulate at the bottom and may get very close to one another, causing some particles to explode and reach unrealistic speeds. **SpikyNonNegativeViscosity** fixes this by having a custom kernel used only for viscosity that's positive at every distance. Aside from this artifact, **Spiky** is useful for a consistently responsive simulation as the gradient is meaningful at every point, though it doesn't produce a smooth density field since the function isn't smooth at $r=0$. **SpikyNonNegativeViscosity** fixes exploding particles while slightly altering behavior.
+
+#### Extreme cases
+
+Now that we have established the behavior and probable use cases of each kernel, here's some more benchmarking:
+
+$dt=0.02$ is chosen for testing due to its balance between physical stability and performance. However, we can make the simulation even faster by increasing $dt$.
+
+Results of `Fluid0.03.csv` (note that settle time is $3.06s$ due to imperfect rounding). The format is `Fluid0.02.csv -> Fluid0.03.csv`:
+| kernel                    | settleSteps   | settleDensitySTD     | settleMaxDensityError   | settleMeanDensityError   | maxVelocity          |
+|:--------------------------|:--------------|:---------------------|:------------------------|:-------------------------|:---------------------|
+| CubicSpline               | 588 -> 396.0  | 30.03627 -> 31.66046 | 3.21126 -> 3.23171      | 0.85109 -> 0.87527       | 12.73043 -> 17.26475 |
+| Poly6                     | 438 -> NaN    | 39.07129 -> NaN      | 2.96113 -> NaN          | 1.01158 -> NaN           | 13.92401 -> NaN      |
+| Spiky                     | 726 -> 384.0  | 24.6942 -> 25.32232  | 2.06978 -> 1.97278      | 0.98631 -> 1.04623       | 40.42869 -> 20.9439  |
+| SpikyNonNegativeViscosity | 720 -> 396.0  | 24.61423 -> 27.23494 | 2.15491 -> 2.12639      | 0.99648 -> 0.99058       | 13.47544 -> 15.69884 |
+| SpikyPower2               | 726 -> 486.0  | 26.34606 -> 26.17385 | 2.03652 -> 1.8562       | 0.87711 -> 0.87709       | 14.00561 -> 19.26917 |
+| WendlandC2                | 726 -> 396.0  | 27.5017 -> 28.32117  | 2.71221 -> 1.943        | 0.8264 -> 0.8788         | 13.87324 -> 18.53333 |
+
+Immediately we don't see **Poly6** making an appearance. With $dt=0.03$, particles jitter, especially at the bottom bound of the simulation, causing $v_{rms}$ to never go below $0.65$ for long enough. 
+
+For other kernels, the densities remain relatively similar, and due to the larger timestep, **maxVelocity** is higher. So what's the limit?
+
+Results of `Fluid0.04.csv` (settle duration $3.12s$):
+| kernel      |   settleSteps |   settleDensitySTD |   settleMaxDensityError |   settleMeanDensityError |   maxVelocity |
+|:------------|--------------:|-------------------:|------------------------:|-------------------------:|--------------:|
+| SpikyPower2 |           288 |            26.6801 |                 1.86311 |                  0.86781 |        26.911 |
+
+Other kernels were extremely unstable (for example $v_{rms} \geq 7$ for **Spiky**). Only **SpikyPower2** stabilized, maintaining an impressive density error comparable to $dt=0.02$ when settled, but it struggled at first. 
+
+An interesting thing to point out is how different kernels react to increasing $dt$. **Spiky** and **WendlandC2** have $v_{rms}$ consistently around $7$. **CubicSpline** did form a liquid body but whose behavior resembles boiling water ($v_{rms}$ around $5$). And **Poly6**'s vanishing gradient meant it dealt very well with a high $dt$. While it of course formed clumps and jittered, the fluid shape was quite stable and $v_{rms}$ was only around $1$.
+
+We see a tradeoff here. Fluid responsiveness corresponds with a sharp function, but that sharpness can cause explosive behavior at high time steps. Depending on the use case, this needs to be considered, especially when $dt$ is dynamic. Choose an appropriate kernel and clamp $dt$ when needed. 
 
