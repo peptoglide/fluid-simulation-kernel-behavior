@@ -10,7 +10,8 @@ public enum KernelEnum
     Spiky = 2,
     SpikyCustomViscosity = 3,
     CubicSpline = 4,
-    WendlandC2 = 5
+    WendlandC2 = 5,
+    Mixed = 6
 }
 
 public class ParticleFluid : MonoBehaviour
@@ -70,14 +71,7 @@ public class ParticleFluid : MonoBehaviour
     {
         Instance = this;
 
-        kernelOptions = new Kernel[]{
-            new FirstKernel(smoothingRadius),
-            new DefaultKernel(smoothingRadius),
-            new DesbrunKernel(smoothingRadius),
-            new DesbrunCustomLaplacianKernel(smoothingRadius),
-            new CubicSplineKernel(smoothingRadius),
-            new WendlandKernel(smoothingRadius)
-        };
+        SetKernelOptions();
         // Initializing kernel functions
         kernel = kernelOptions[(int)smoothingKernel];
         CalculatePositions();
@@ -104,16 +98,22 @@ public class ParticleFluid : MonoBehaviour
 
     void OnValidate()
     {
+        SetKernelOptions();
+        // Initializing kernel functions
+        kernel = kernelOptions[(int)smoothingKernel];
+    }
+
+    void SetKernelOptions()
+    {
         kernelOptions = new Kernel[]{
             new FirstKernel(smoothingRadius),
             new DefaultKernel(smoothingRadius),
             new DesbrunKernel(smoothingRadius),
             new DesbrunCustomLaplacianKernel(smoothingRadius),
             new CubicSplineKernel(smoothingRadius),
-            new WendlandKernel(smoothingRadius)
+            new WendlandKernel(smoothingRadius),
+            new MixedKernel(smoothingRadius)
         };
-        // Initializing kernel functions
-        kernel = kernelOptions[(int)smoothingKernel];
     }
 
     // Simulation step

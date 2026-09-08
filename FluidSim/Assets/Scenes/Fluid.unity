@@ -1549,7 +1549,7 @@ MonoBehaviour:
   gravity: 10
   bounceDamping: 0.4
   simulationBounds: {x: 10, y: 6}
-  smoothingKernel: 5
+  smoothingKernel: 6
   predictStep: 0.02
   mouseForceStrength: 25
   mouseRadius: 3
