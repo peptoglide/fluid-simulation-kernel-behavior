@@ -1,6 +1,6 @@
 # How kernels affect the behavior of fluid in Smoothed Particle Hydrodynamics
 
-A 2D fluid simulation implemented using Smoothed Particle Hydrodynamics (SPH). This project investigates how different kernel choices for SPH affect fluid stability & convergence, density accuracy and computational cost
+A 2D fluid simulation implemented using Smoothed Particle Hydrodynamics (SPH). This project investigates how different kernel choices for SPH affect fluid stability & convergence, density accuracy and computational cost, determining plausible use cases for these kernels. 
 
 ## 1. Overview
 ### Smoothed Particle Hydrodynamics
@@ -18,12 +18,12 @@ The choice of kernel affects fluid behavior. Density calculation uses $f(r)$, pr
 This project asks how different kernels affect SPH and their tradeoffs to see which choice best fits each use. 
 
 ## 2. SPH Implementation
-**Note**: More rigorously, $f$ is a function taking in the direction vector and outputs the influence. Since $f$ is usually radially symmetric, it is more simple to think of it as a function of distance, but the text below assumes vector input.
+**Note**: More rigorously, $f$ is a function taking in the direction vector and outputs the influence. Since $f$ is usually radially symmetric, it is more simple to think of it as a function of distance. The two definitions can be used interchangably in the text below. 
 
 A central equation of SPH is:
 $$A(r)=\sum_j m_j\frac{A_j}{\rho_j}f(r - r_j)$$
 
-To put it simply, to get the attribute of a position $r$, we add the influence of each nearby particle with a weight $\frac{m_j \times f(dist)}{\rho_j}$. Therefore, the density of a position is:
+To put it simply, to get the attribute of a position $r$, we add the influence of each nearby particle with a weight $\frac{m_j \times f(distance)}{\rho_j}$. Therefore, the density of a position is:
 $$\rho_i = \sum_j m_jf(r_i-r_j)$$
 
 We try to maintain a rest density $\rho$, and a pressure force tries to correct it:
@@ -174,7 +174,14 @@ Back to `Fluid0.02.csv`, **settleDensitySTD** is bad, but **CubicSpline** and **
 
 On the topic of **maxVelocity**, what's up with **Spiky**'s $40.4287$ and **SpikyPower2**'s $163.446$? Viscosity is calculated on the laplacian of each kernel, and it turns out that **Spiky** and **SpikyPower2** can have a negative laplacian, introducing sudden velocity into the simulation. With gravity applied, particles accumulate at the bottom and may get very close to one another, causing some particles to explode and reach unrealistic speeds. **SpikyNonNegativeViscosity** fixes this by having a custom kernel used only for viscosity that's positive at every distance. Aside from this artifact, **Spiky** is useful for a consistently responsive simulation as the gradient is meaningful at every point, though it doesn't produce a smooth density field since the function isn't smooth at $r=0$. **SpikyNonNegativeViscosity** fixes exploding particles while slightly altering behavior.
 
+The thing is, all kernels actually have a region within its radius where the laplacian is negative, so why are **Spiky**s more extreme than others? As it turns out, **Spiky**s have divergent laplacian approaching $r=0$, while other functions' laplacians towards $r=0$ reach a limit. 
+
+This has to do with the smoothness of the kernel chosen. The laplacian involves the term $\frac{f'(r)}{r}$. For smooth functions, $\lim_{r\to0}f'(r)=0$, so the numerator vanishes along with the denominator. The limit of the laplacian can be calculated with L'Hôpital's rule. For **Spiky**s however, $f'(0)$ is still meaningful, causing the laplacian to shoot off to $\infty$.
+
 #### Extreme cases
+
+___
+##### Larger $dt$
 
 Now that we have established the behavior and probable use cases of each kernel, here's some more benchmarking:
 
@@ -204,4 +211,20 @@ Other kernels were extremely unstable (for example $v_{rms} \geq 7$ for **Spiky*
 An interesting thing to point out is how different kernels react to increasing $dt$. **Spiky** and **WendlandC2** have $v_{rms}$ consistently around $7$. **CubicSpline** did form a liquid body but whose behavior resembles boiling water ($v_{rms}$ around $5$). And **Poly6**'s vanishing gradient meant it dealt very well with a high $dt$. While it of course formed clumps and jittered, the fluid shape was quite stable and $v_{rms}$ was only around $1$.
 
 We see a tradeoff here. Fluid responsiveness corresponds with a sharp function, but that sharpness can cause explosive behavior at high time steps. Depending on the use case, this needs to be considered, especially when $dt$ is dynamic. Choose an appropriate kernel and clamp $dt$ when needed. 
+___
+##### Larger drop
+With simulation bound $10\times6$, the drop is only $3$ units on average. For this experiment, the bound is increased to $10\times15$, and the fluid is dropped with offset $11$ from $(0,0)$. Therefore, the fluid drops, on average, $18.5$ units before touching the ground. 
 
+Results of `FluidHigh0.02.csv` compared to `Fluid0.02.csv`:
+| kernel                    | settleSteps   | maxVelocity          |
+|:--------------------------|:--------------|:---------------------|
+| CubicSpline               | 588 -> 648    | 12.73043 -> 26.24673 |
+| Poly6                     | 438 -> 516    | 13.92401 -> 26.21604 |
+| Spiky                     | 726 -> 720    | 40.42869 -> 29.00913 |
+| SpikyNonNegativeViscosity | 720 -> 708    | 13.47544 -> 25.43469 |
+| SpikyPower2               | 726 -> 654    | 14.00561 -> 544.0333 |
+| WendlandC2                | 726 -> 774    | 13.87324 -> 26.23156 |
+
+**SpikyNonNegativeViscosity** definitely doesn't have negative viscosity, so we can use that as a baseline. The **maxVelocity** of **Spiky** notably went down, showing that speed artifacts are quite dependent on the initial configurations. **SpikyPower2**, however, jumped all the way to $544.0333$. The simulation didn't exactly blow up, though; rather, a few ill particles reached relativistic speed whose velocities are measured. 
+
+Other than that, **settleSteps** didn't alter by a lot. In fact, some of them went down. 
