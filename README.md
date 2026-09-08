@@ -228,3 +228,43 @@ Results of `FluidHigh0.02.csv` compared to `Fluid0.02.csv`:
 **SpikyNonNegativeViscosity** definitely doesn't have negative viscosity, so we can use that as a baseline. The **maxVelocity** of **Spiky** notably went down, showing that speed artifacts are quite dependent on the initial configurations. **SpikyPower2**, however, jumped all the way to $544.0333$. The simulation didn't exactly blow up, though; rather, a few ill particles reached relativistic speed whose velocities are measured. 
 
 Other than that, **settleSteps** didn't alter by a lot. In fact, some of them went down. 
+
+### c. Mixed kernel
+We were able to get away with a custom laplacian for **SpikyNonNegativeViscosity**, though it is not physically accurate to the kernel. Disregarding physics for a second, we can take this a step further and use a custom gradient as well. 
+
+This is the idea of a mixed kernel, where different components are mix-and-matched for density, pressure and viscosity. Of course, this means that the fluid doesn't move accurately to the density field, sacrifising physical fidelity for unmatched flexibility. With a good combination of kernels, the fluid may still behave convincingly to the eyes, making this approach suitable for performance-oriented or visual-oriented uses. 
+
+The **Mixed** kernel below uses **Poly6** for density calculations to ensure a smooth density field, **Spiky** for gradient calculations for a responsive pressure field, and a custom linear function for the laplacian that's positive everywhere (similar to **SpikyNonNegativeViscosity**). 
+
+#### Air
+Using **Poly6** for density means that at the same $\rho$, the fluid seems to need more particles to reach $\rho$ than compared to **Spiky** for example.
+
+This result is measured at $\rho=5$
+| kernel   |   settleSteps |   settleDensitySTD |   settleMaxDensityError |   settleMeanDensityError |   maxVelocity |
+|:---------|--------------:|-------------------:|------------------------:|-------------------------:|--------------:|
+| Mixed    |           582 |            0.24381 |                 1.02906 |                  0.99212 |       10.3867 |
+
+Note that **settleMaxDensityError** and **settleMeanDensityError** are divided by $\rho$, so the lower $\rho$ is, the higher the results tend to be. 
+
+This result is pretty good! I am not used to **Poly6** being this responsive. And the fluid was able to finally settle uniformly. $\rho$ did need to decrease for this, as $\rho=10$ means the fluid would have holes. 
+
+This made me curious, and I tested **Poly6** at $\rho=5$
+| kernel   |   settleSteps |   settleDensitySTD |   settleMaxDensityError |   settleMeanDensityError |   maxVelocity |
+|:---------|--------------:|-------------------:|------------------------:|-------------------------:|--------------:|
+| Poly6    |           636 |           10.4911  |                 3.77475 |                  0.60482 |       10.5701 |
+
+So it's clear that the sharper curve for gradient calculations did help the simulation stabilize faster and more uniformly. 
+
+#### Fluid
+| file                    |   settleSteps |   settleDensitySTD |   settleMaxDensityError |   settleMeanDensityError |   maxVelocity |
+|:--------------------------|--------------:|-------------------:|------------------------:|-------------------------:|--------------:|
+| Fluid0.02.csv                     |           720 |            22.7498 |                 1.67149 |                  0.75207 |       16.2979 |
+| FluidStrong0.01.csv                     |          1626 |            8.09792 |                 0.43452 |                  0.16565 |       19.1617 |
+| FluidHigh0.02.csv                     |           642 |            23.8979 |                 1.80401 |                  0.73437 |       26.9791 |
+| Fluid0.03.csv                     |           390 |            23.4022 |                 1.71695 |                  0.78016 |       18.884  |
+
+These are promising numbers. **Poly6**'s smooth density field works with **Spiky**'s sharpness, allowing the fluid to reach the desired state quickly. And a custom laplacian ensures the kernel doesn't suffer from speed artifacts. 
+
+The behavior of the fluid is different from **Spiky** under these combinations. This can be observed using mouse interactions. In many ways, it is similar to **WendlandC2**, which is relatively sharp but still has a smooth density field. 
+
+So a mixed kernel can be pretty well-rounded as well if the use case doesn't ask for absolute physical accuracy. Depending on the constraint that a kernel may be chosen for performance or visual effects. 
