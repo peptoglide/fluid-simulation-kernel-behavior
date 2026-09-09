@@ -306,3 +306,39 @@ These are promising numbers. **Poly6**'s smooth density field works with **Spiky
 The behavior of the fluid is different from **Spiky** under these combinations. This can be observed using mouse interactions. In many ways, it is similar to **WendlandC2**, which is relatively sharp but still has a smooth density field. 
 
 So a mixed kernel can be pretty well-rounded as well if the use case doesn't ask for absolute physical accuracy. Depending on the constraint that a kernel may be chosen for performance or visual effects. 
+
+## 5. Limitations & Future Work
+
+The first issue has to do with performance. The simulation is currently done on the CPU, with minimal parallelism done with Unity's `Parallel.For`. On a PC, the simulation can run $10,000$ particles quite slowly. This means I cannot test how the solver behaves at higher particle count. The current $n=1,600$ I feel is pretty sparse, and would want increased much higher. 
+
+In the future, a compute shader implementation is an interesting consideration. This way, particles can run in parallel with each other, and the simulation can be comfortable with many more particles. 
+
+For the same reason, the project doesn't have surface reconstruction for rendering the fluid. It seems shaders are worth investing in overall. 
+
+The next limitation has to do with the physics of the simulation. The boundary handling has been simplified to a translation and velocity dampening. That's not too bad, but another issue with the boundaries is that empty space outside doesn't count for density inside. With the same density, a space near the boundary may be considered less dense than somewhere in the middle of the fluid. 
+
+Future work might focus on this by using pseudo-particles just outside of bounds. However I worry this might alter the underlying physics of the simulation too much. Kernel renormalization seems more plausible to keep the solver consistent, but depending on use that one may choose an approach over another. 
+
+The next one is that I feel the simulation is quite sensitive to parameter changes. But this isn't a limitation intrinsic to the solver. The Navier-Stokes problem awards a million dollars for a reason. Fluids are chaotic in nature; and one might expect an imitation of them to be subject to the butterfly effect as well. However, that means empirical data can differ by a lot under similar circumstances (for example, **maxVelocities** measured in **Spiky** variants). 
+
+I would also prefer a more rigorous convergence testing with more metrics measured. Right now, it is a simple low $v_{rms}$ for $X$ seconds. Technically, a fluid can just stay still and be considered stable. I choose this because it is simple enough, and that the fluid, for this project, really has went through a lot of valid stages before stabilizing at a uniform state with low density errors.  
+
+The metrics can be more thorough. Looking at the **Mixed** kernel, the results look good, even better than the other kernels, but we know **Mixed** can't be accurate to its density field. Right now, I have ideas on measuring how the fluid diverges from a true kernel in terms of the velocity field. I don't know for sure though, once I overlay two kernels on top of each other I would be more informed to make this decision.  
+
+Finally, in the future, 3D SPH can be explored. I believe the transition should be simple. In fact, more documentation exists for 3D given that the normalization coefficients for kernels on the internet are predominantly for 3D. I am also curious how this solver looks compared to an established fluid solver. 
+
+## 6. How to run
+First of all, clone this repository. This project uses Unity, so it can be opened with Unity Hub by adding a project from disk (the project folder is `./FluidSim`). Use the appropriate version (6000.3.10f1). 
+
+Next, open a scene. The two examples scenes `Air` and `Fluid` give a reference to what components should be located where. The two scenes are similar, only different in parameters. 
+
+You can create your own scene using the two examples as reference, or duplicate the examples into a new scene, or just use the existing examples. Parameters are adjustable in the `Inspector`, typically on the right section of the screen. Here you will see some similar variables, for instance:
+- Smoothing Radius: $h$. Be mindful of the different support radius of **CubicSpline** while testing. 
+- Timestep Seconds: $dt$. 
+- Target Density: $\rho$.
+- Pressure Mult: $k$.
+- Viscosity: $\mu$
+
+The stability threshold will be checked every `Velocity Recalc` frames. If $v_{rms}$ is lower than `Stability Threshold` for `Stability Checks` frames, the fluid is considered stable. Scroll down, and if you want data recorded, turn on `Record` and input a path to `Csv Name`. The program will create/update the file in the given path.  
+
+For example, `Csv Name: CSVs/Fluid0.02` means the file will be `Fluid0.02.csv`, located in the `CSVs` folder. 
