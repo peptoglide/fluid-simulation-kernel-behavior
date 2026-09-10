@@ -354,3 +354,28 @@ You can create your own scene using the two examples as reference, or duplicate 
 The stability threshold will be checked every `Velocity Recalc` frames. If $v_{rms}$ is lower than `Stability Threshold` for `Stability Checks` frames, the fluid is considered stable. Scroll down, and if you want data recorded, turn on `Record` and input a path to `Csv Name`. The program will create/update the file in the given path.  
 
 For example, `Csv Name: CSVs/Fluid0.02` means the file will be `Fluid0.02.csv`, located in the `CSVs` folder. 
+
+## 7. Conclusion
+
+Kernel mathematics affect the density, pressure and viscosity of a fluid, largely governing how the simulation will evolve over time. By benchmarking, this project evaluated several kernels in terms of computational cost, density behavior, stability and overall quality. 
+
+In summary, simple kernels that are easy to calculate have the most primitive behaviors, but that doesn't mean they don't produce a usable result. 
+- **Poly6** is very smooth and has a weaker pressure field overall, so the particles are very stable. This kernel is therefore usable with high $dt$ ($\to$ lower computation per frame) paired with surface reconstruction (particles clamp together) at the cost of lower resolution (for the same reason). 
+- **Spiky** is very responsive by not having a vanishing gradient, but suffers from explosiveness given a chaotic configuration, also partly due to its negative viscosity at certain ranges. 
+
+These kernels, therefore, can be advantageous for real-time and interactive applications due to their simplicity (**Spiky** needs clamping on $dt$ however). By not prioritizing physical fidelity, one can also combine different functions to create a highly customized kernel for their project. 
+
+On the other hand, kernels like **CubicSpline** and **WendlandC2** are complex, but their curves get the best of both worlds. The fluid is responsive but still has a smooth density field. Therefore, these kernels are very well-rounded and suitable for a lot of uses. Such kernels that produce more stable and physically consistent density distributions may be preferred for accuracy-oriented simulations. 
+
+The choice of kernel therefore depends on the requirements of the application rather than on a single measure of performance.
+
+Beyond this, the project also briefly talks about the SPH pipeline. A big optimization is spatial partitioning (particles live in grid cells, so the solver doesn't have to iterate over everything when searching for particles). The choice of a fixed $dt$ is due to preferring numerical stability, but applications can use a dynamic $dt$, which asks for a stable kernel. So the simulation process can be a big factor when considering a kernel as well. 
+
+## 8. References
+**Note**: **SpikyPower2** was the default kernel for this project for a long time, so I kept it. It is not established. 
+
+*Particle-Based Fluid Simulation for Interactive Applications*: https://matthias-research.github.io/pages/publications/sca03.pdf 
+
+*Piecewise polynomial, positive definite and compactly supported radial functions of minimal degree*: https://doi.org/10.1007/BF02123482
+
+(Cubic Spline) *Smoothed particle hydrodynamics*: https://planets.utsc.utoronto.ca/~pawel/PHYD57/monaghan-sph2005.pdf
