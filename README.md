@@ -16,35 +16,43 @@ SPH is a technique of modeling fluids whereby a fluid is characterized by discre
 
 The question is, how is one particle blurred? We can imagine a radius around a particle (called the smoothing radius), and depending on the distance, we have a brightness (influence) of that particle on that specific distance. For example:
 
-$$f(r) = (h^2 - r^2)^3$$
+$$W(r) = (h^2 - r^2)^3$$
+
 where $h$ is the smoothing radius of a particle, and $r$ is the distance from that particle. This function is called a smoothing kernel.
 
 ### What this project does
 
-The choice of kernel affects fluid behavior. Density calculation uses $f(r)$, pressure goes from dense regions to less dense regions (and therefore uses $f'(r)$), and viscosity aims to smooth out the velocity field (and therefore uses $f''(r)$)
+The choice of kernel affects fluid behavior. Density calculation uses $W(r)$, pressure goes from dense regions to less dense regions (and therefore uses $\frac{dW}{dr}$), and viscosity aims to smooth out the velocity field (and therefore uses $\frac{d^2W}{dr^2}$)
 
 This project asks how different kernels affect SPH and their tradeoffs to see which choice best fits each use. 
 
 ## 2. SPH Implementation
-**Note**: More rigorously, $f$ is a function taking in the direction vector and outputs the influence. Since $f$ is usually radially symmetric, it is more simple to think of it as a function of distance. The two definitions can be used interchangably in the text below. 
+**Note**: More rigorously, $W$ is a function taking in the direction vector and outputs the influence. Since $W$ is usually radially symmetric, it is more simple to think of it as a function of distance. The two definitions can be used interchangably in the text below. 
 
 A central equation of SPH is:
-$$A(r)=\sum_j m_j\frac{A_j}{\rho_j}f(r - r_j)$$
 
-To put it simply, to get the attribute of a position $r$, we add the influence of each nearby particle with a weight $\frac{m_j \times f(distance)}{\rho_j}$. Therefore, the density of a position is:
-$$\rho_i = \sum_j m_jf(r_i-r_j)$$
+$$A(r)=\sum_j m_j\frac{A_j}{\rho_j}W(r - r_j)$$
+
+To put it simply, to get the attribute of a position $r$, we add the influence of each nearby particle with a weight $\frac{m_j \times W(distance)}{\rho_j}$. Therefore, the density of a position is:
+
+$$\rho_i = \sum_j m_jW(r_i-r_j)$$
 
 We try to maintain a rest density $\rho$, and a pressure force tries to correct it:
+
 $$p_i = k(\rho - \rho_i)$$
 
 The pressure force is:
-$$f^{pressure}_i = -\nabla p(r_i) = -\sum_j m_j\frac{p_j}{\rho_j}\nabla f(r_i - r_j)$$
+
+$$f^{pressure}_i = -\nabla p(r_i) = -\sum_j m_j\frac{p_j}{\rho_j}\nabla W(r_i - r_j)$$
 
 This force is, however, not symmetric. To symmetrize:
-$$f^{pressure}_i = -\sum_j m_j\frac{p_i + p_j}{2\rho_j}\nabla f(r_i - r_j)$$
+
+$$f^{pressure}_i = -\sum_j m_j\frac{p_i + p_j}{2\rho_j}\nabla W(r_i - r_j)$$
 
 And the viscosity:
-$$f^{viscosity}_i = \mu\sum_j m_j\frac{v_j - v_i}{\rho_j}\nabla^2 f(r_i - r_j)$$
+
+$$f^{viscosity}_i = \mu\sum_j m_j\frac{v_j - v_i}{\rho_j}\nabla^2 W(r_i - r_j)$$
+
 Basically, with frame of reference particle $i$, it is being accelerated in the direction of the relative speed of its environment. 
 
 With this, we can start simulating a step:
@@ -62,17 +70,18 @@ A step is done each frame, and each step assumes constant time has passed for be
 ## 3. Kernels tested
 6 kernels are tested.
 
-**Poly6**: $\, f(r) =\alpha (h^2 - r^2)^3$
+**Poly6**: $\, W(r) =\alpha (h^2 - r^2)^3$
 
-**SpikyPower2**: $\, f(r) =\alpha (h - r)^2$
+**SpikyPower2**: $\, W(r) =\alpha (h - r)^2$
 
-**Spiky**: $\, f(r) =\alpha (h - r)^3$
+**Spiky**: $\, W(r) =\alpha (h - r)^3$
 
-**SpikyNonNegativeViscosity**: $\, f(r) =\alpha (h - r)^3$, but with a custom, positive kernel for viscosity to avoid introducing velocity into the system
+**SpikyNonNegativeViscosity**: $\, W(r) =\alpha (h - r)^3$, but with a custom, positive kernel for viscosity to avoid introducing velocity into the system
 
 **CubicSpline**: $q=\frac{r}{h}$
+
 $$
-f(x) = \alpha
+W(r) = \alpha
 \begin{cases}
 1 - \frac{3q^2}{2} + \frac{3q^3}{4}, & 0 \leq q < 1 \\
 \frac{(2-q)^3}{4}, & 1 \leq q < 2 \\
@@ -81,8 +90,9 @@ f(x) = \alpha
 $$
 
 **WendlandC2**: $q=\frac{r}{h}$
+
 $$
-f(x) = \alpha
+W(r) = \alpha
 \begin{cases}
 (1-q)^4 \times (1 + 4q), & 0 \leq q \leq 1 \\
 0, & 1 < q
@@ -90,7 +100,9 @@ f(x) = \alpha
 $$
 
 Where $\alpha$ is the normalization factor of a kernel and differs by kernel. It is to assure that:
-$$\int f(r) dr = 1$$
+
+$$\int W(r) dr = 1$$
+
 Otherwise, even with a high enough $h$, increasing $h$ would change the density at a particle compared to a lower $h$. 
 
 Kernels are compared under these initial arrangements:
@@ -206,7 +218,7 @@ On the topic of **maxVelocity**, what's up with **Spiky**'s $40.4287$ and **Spik
 
 The thing is, all kernels actually have a region within its radius where the laplacian is negative, so why are **Spiky**s more extreme than others? As it turns out, **Spiky**s have divergent laplacian approaching $r=0$, while other functions' laplacians towards $r=0$ reach a limit. 
 
-This has to do with the smoothness of the kernel chosen. The laplacian involves the term $\frac{f'(r)}{r}$. For smooth functions, $\lim_{r\to0}f'(r)=0$, so the numerator vanishes along with the denominator. The limit of the laplacian can be calculated with L'Hôpital's rule. For **Spiky**s however, $f'(0)$ is still meaningful, causing the laplacian to shoot off to $\infty$.
+This has to do with the smoothness of the kernel chosen. The laplacian involves the term $\frac{W'(r)}{r}$. For smooth functions, $\lim_{r\to0}W'(r)=0$, so the numerator vanishes along with the denominator. The limit of the laplacian can be calculated with L'Hôpital's rule. For **Spiky**s however,  $\lim_{r\to0}W'(r)$ is still meaningful, causing the laplacian to shoot off to $\infty$.
 
 #### Extreme cases
 
